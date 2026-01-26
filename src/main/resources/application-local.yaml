@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/runners_hi
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    root: INFO
+    com.runnershi: DEBUG                    # 우리 코드만 DEBUG
+    org.springframework.web: INFO           # 요청/응답 로그
+    org.hibernate.SQL: DEBUG                # SQL 쿼리 (show-sql과 별개)
+    org.hibernate.orm.jdbc.bind: OFF        # 바인딩 파라미터 (너무 verbose해서 OFF)
+    org.springframework.security: WARN      # Security는 경고만
+    org.flywaydb: INFO                      # Flyway 마이그레이션
+    com.zaxxer.hikari: WARN                 # DB 커넥션 풀
+  pattern:
+    console: "%d{HH:mm:ss} %clr(%-5level) %cyan([%logger{20}]) : %msg%n"
