@@ -20,6 +20,10 @@ jwt:
   access-token-validity: 3600000       # 1 hour
   refresh-token-validity: 1209600000   # 14 days
 
+oauth:
+  apple:
+    bundle-id: ${APPLE_BUNDLE_ID:}
+
 springdoc:
   api-docs:
     path: /api-docs

@@ -38,6 +38,9 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
 
+    // Apple OAuth (JWT/JWKS 처리)
+    implementation("com.nimbusds:nimbus-jose-jwt:10.3")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
 
