@@ -38,6 +38,9 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
 
+    // Google OAuth
+    implementation("com.google.api-client:google-api-client:2.7.0")
+
     // Apple OAuth (JWT/JWKS 처리)
     implementation("com.nimbusds:nimbus-jose-jwt:10.3")
 
