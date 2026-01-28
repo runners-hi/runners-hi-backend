@@ -11,6 +11,7 @@ enum class ErrorCode(
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "C001", "Invalid input value"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "Internal server error"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "Resource not found"),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "C004", "Method not allowed"),
 
     // Auth
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "Invalid token"),
