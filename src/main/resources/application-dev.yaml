@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.runnershi: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: OFF
+    org.springframework.security: WARN
+    org.flywaydb: INFO
+    com.zaxxer.hikari: WARN

@@ -13,7 +13,20 @@
 
 ### 1. PostgreSQL 시작
 ```bash
-docker-compose up -d
+# 컨테이너 시작
+docker compose up -d
+
+# 상태 확인 (healthy 상태인지 확인)
+docker compose ps
+
+# 로그 확인
+docker compose logs -f postgres
+
+# 컨테이너 종료
+docker compose down
+
+# 컨테이너 + 데이터 삭제 (초기화)
+docker compose down -v
 ```
 
 ### 2. 애플리케이션 실행
@@ -44,19 +57,24 @@ src/main/kotlin/com/runnershi/
 
 ## 설정 파일
 
-| 파일 | 용도 |
-|------|------|
-| `application.yaml` | 공통 설정 |
-| `application-local.yaml` | 로컬 개발 환경 |
-| `application-test.yaml` | 테스트 환경 (H2) |
+| 파일 | 용도 | Swagger | 로깅 |
+|------|------|---------|------|
+| `application.yaml` | 공통 설정 | - | - |
+| `application-local.yaml` | 로컬 개발 | O | DEBUG |
+| `application-dev.yaml` | 개발 서버 | O | INFO |
+| `application-prod.yaml` | 운영 서버 | X | WARN |
+| `application-test.yaml` | 테스트 (H2) | - | DEBUG |
 
 ## 환경 변수
 
-| 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `DB_USERNAME` | postgres | DB 사용자 |
-| `DB_PASSWORD` | password | DB 비밀번호 |
-| `JWT_SECRET` | (개발용 기본값) | JWT 서명 키 |
+| 변수 | 필수 환경 | 설명 |
+|------|-----------|------|
+| `DB_URL` | dev, prod | JDBC 연결 URL |
+| `DB_USERNAME` | dev, prod | DB 사용자 |
+| `DB_PASSWORD` | dev, prod | DB 비밀번호 |
+| `JWT_SECRET` | prod | JWT 서명 키 (256bit 이상) |
+
+> local 환경은 기본값이 설정되어 있어 환경 변수 없이 실행 가능
 
 ## 주요 명령어
 
