@@ -76,6 +76,16 @@ src/main/kotlin/com/runnershi/
 
 > local 환경은 기본값이 설정되어 있어 환경 변수 없이 실행 가능
 
+### 환경 변수 설정 방법
+
+```bash
+# .env.example을 복사하여 .env.local 생성
+cp .env.example .env.local
+
+# .env.local 수정 후 사용
+source .env.local && SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+```
+
 ## 주요 명령어
 
 ```bash
