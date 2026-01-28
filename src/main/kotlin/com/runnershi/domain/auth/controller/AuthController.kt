@@ -2,6 +2,7 @@ package com.runnershi.domain.auth.controller
 
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.auth.dto.AuthResponse
+import com.runnershi.domain.auth.dto.AppleLoginRequest
 import com.runnershi.domain.auth.dto.GoogleLoginRequest
 import com.runnershi.domain.auth.dto.KakaoLoginRequest
 import com.runnershi.domain.auth.service.AuthService
@@ -35,6 +36,15 @@ class AuthController(
         @Valid @RequestBody request: GoogleLoginRequest
     ): ApiResponse<AuthResponse> {
         val response = authService.loginWithGoogle(request.idToken)
+        return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "애플 로그인", description = "Apple id_token으로 로그인/회원가입")
+    @PostMapping("/apple")
+    fun loginWithApple(
+        @Valid @RequestBody request: AppleLoginRequest
+    ): ApiResponse<AuthResponse> {
+        val response = authService.loginWithApple(request.idToken)
         return ApiResponse.success(response)
     }
 }

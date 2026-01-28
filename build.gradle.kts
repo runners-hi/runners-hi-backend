@@ -41,6 +41,9 @@ dependencies {
     // Google OAuth
     implementation("com.google.api-client:google-api-client:2.7.0")
 
+    // Apple OAuth (JWT/JWKS 처리)
+    implementation("com.nimbusds:nimbus-jose-jwt:10.3")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
 
