@@ -38,6 +38,9 @@ dependencies {
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
 
+    // Google OAuth
+    implementation("com.google.api-client:google-api-client:2.7.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
 
