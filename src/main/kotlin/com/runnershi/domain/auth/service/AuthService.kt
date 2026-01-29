@@ -2,9 +2,12 @@ package com.runnershi.domain.auth.service
 
 import com.runnershi.auth.client.AuthClient
 import com.runnershi.auth.client.UserInfo
+import com.runnershi.common.exception.BusinessException
+import com.runnershi.common.exception.ErrorCode
 import com.runnershi.common.security.JwtTokenProvider
 import com.runnershi.common.util.NicknameGenerator
 import com.runnershi.domain.auth.dto.AuthResponse
+import com.runnershi.domain.auth.dto.TokenResponse
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
@@ -94,5 +97,42 @@ class AuthService(
         return nicknameGenerator.generateUnique { nickname ->
             userRepository.existsByNickname(nickname)
         }
+    }
+
+    @Transactional
+    fun refreshToken(refreshToken: String): TokenResponse {
+        // 1. Refresh Token 타입 검증
+        jwtTokenProvider.validateRefreshToken(refreshToken)
+
+        // 2. 토큰에서 userId 추출
+        val userId = jwtTokenProvider.getUserIdFromToken(refreshToken)
+
+        // 3. 사용자 조회
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        // 4. DB에 저장된 Refresh Token과 일치하는지 확인
+        if (user.refreshToken != refreshToken) {
+            throw BusinessException(ErrorCode.REFRESH_TOKEN_MISMATCH)
+        }
+
+        // 5. Refresh Token 만료 여부 확인
+        if (user.refreshTokenExpiresAt?.isBefore(LocalDateTime.now()) == true) {
+            throw BusinessException(ErrorCode.EXPIRED_TOKEN)
+        }
+
+        // 6. 새 토큰 발급 (Refresh Token Rotation)
+        val newAccessToken = jwtTokenProvider.createAccessToken(user.id)
+        val newRefreshToken = jwtTokenProvider.createRefreshToken(user.id)
+
+        // 7. 새 Refresh Token 저장
+        user.refreshToken = newRefreshToken
+        user.refreshTokenExpiresAt = LocalDateTime.now()
+            .plusSeconds(jwtTokenProvider.getRefreshTokenValidity() / 1000)
+
+        return TokenResponse(
+            accessToken = newAccessToken,
+            refreshToken = newRefreshToken
+        )
     }
 }
