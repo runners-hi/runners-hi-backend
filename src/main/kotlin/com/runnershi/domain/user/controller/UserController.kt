@@ -2,22 +2,37 @@ package com.runnershi.domain.user.controller
 
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.region.dto.RegionUpdateRequest
+import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+// TODO: 마이페이지 편집 API (화면 확정 후 구현)
+//       - PATCH /api/users/nickname - 닉네임 변경
+//       - PATCH /api/users/profile-image - 프로필 이미지 변경
+//       - PATCH /api/users/notification - 알림 설정 변경
 @Tag(name = "User", description = "유저 API")
 @RestController
 @RequestMapping("/api/users")
 class UserController(
     private val userService: UserService
 ) {
+
+    @Operation(summary = "내 정보 조회", description = "마이페이지 내 정보 조회")
+    @GetMapping("/me")
+    fun getMyProfile(
+        @AuthenticationPrincipal userId: Long
+    ): ApiResponse<MyProfileResponse> {
+        val response = userService.getMyProfile(userId)
+        return ApiResponse.success(response)
+    }
 
     @Operation(summary = "지역 선택/변경", description = "러닝 지역 선택 또는 변경")
     @PatchMapping("/region")
