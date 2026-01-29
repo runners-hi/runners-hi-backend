@@ -27,6 +27,7 @@ class SecurityConfig(
                 auth
                     .requestMatchers("/api/auth/logout").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/terms").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
                     .requestMatchers(
                         "/api/auth/**",
                         "/swagger-ui/**",
