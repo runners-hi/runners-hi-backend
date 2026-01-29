@@ -11,6 +11,7 @@ import com.runnershi.domain.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -57,5 +58,14 @@ class AuthController(
     ): ApiResponse<TokenResponse> {
         val response = authService.refreshToken(request.refreshToken)
         return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "로그아웃", description = "Refresh Token 무효화")
+    @PostMapping("/logout")
+    fun logout(
+        @AuthenticationPrincipal userId: Long
+    ): ApiResponse<Unit> {
+        authService.logout(userId)
+        return ApiResponse.success(Unit)
     }
 }

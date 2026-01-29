@@ -135,4 +135,13 @@ class AuthService(
             refreshToken = newRefreshToken
         )
     }
+
+    @Transactional
+    fun logout(userId: Long) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        user.refreshToken = null
+        user.refreshTokenExpiresAt = null
+    }
 }
