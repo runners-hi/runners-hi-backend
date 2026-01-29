@@ -5,3 +5,8 @@ data class AuthResponse(
     val refreshToken: String,
     val isNewUser: Boolean
 )
+
+data class TokenResponse(
+    val accessToken: String,
+    val refreshToken: String
+)

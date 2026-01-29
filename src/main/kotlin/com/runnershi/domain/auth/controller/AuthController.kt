@@ -5,6 +5,8 @@ import com.runnershi.domain.auth.dto.AuthResponse
 import com.runnershi.domain.auth.dto.AppleLoginRequest
 import com.runnershi.domain.auth.dto.GoogleLoginRequest
 import com.runnershi.domain.auth.dto.KakaoLoginRequest
+import com.runnershi.domain.auth.dto.RefreshTokenRequest
+import com.runnershi.domain.auth.dto.TokenResponse
 import com.runnershi.domain.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -45,6 +47,15 @@ class AuthController(
         @Valid @RequestBody request: AppleLoginRequest
     ): ApiResponse<AuthResponse> {
         val response = authService.loginWithApple(request.idToken)
+        return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "토큰 재발급", description = "Refresh Token으로 새로운 Access Token 발급")
+    @PostMapping("/refresh")
+    fun refreshToken(
+        @Valid @RequestBody request: RefreshTokenRequest
+    ): ApiResponse<TokenResponse> {
+        val response = authService.refreshToken(request.refreshToken)
         return ApiResponse.success(response)
     }
 }

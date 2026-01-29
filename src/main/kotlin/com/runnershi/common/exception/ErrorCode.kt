@@ -21,6 +21,8 @@ enum class ErrorCode(
     TOKEN_REQUIRED(HttpStatus.UNAUTHORIZED, "A005", "토큰이 필요합니다"),
     MALFORMED_TOKEN(HttpStatus.UNAUTHORIZED, "A006", "잘못된 토큰 형식입니다"),
     ACCESS_TOKEN_REQUIRED(HttpStatus.UNAUTHORIZED, "A007", "Access Token이 필요합니다"),
+    REFRESH_TOKEN_REQUIRED(HttpStatus.UNAUTHORIZED, "A008", "Refresh Token이 필요합니다"),
+    REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "A009", "Refresh Token이 일치하지 않습니다"),
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "User not found"),

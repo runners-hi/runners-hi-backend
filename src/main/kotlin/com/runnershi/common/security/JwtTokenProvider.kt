@@ -66,6 +66,13 @@ class JwtTokenProvider(
         }
     }
 
+    fun validateRefreshToken(token: String) {
+        val tokenType = getTokenType(token)
+        if (tokenType != TOKEN_TYPE_REFRESH) {
+            throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
+        }
+    }
+
     private fun parseToken(token: String): io.jsonwebtoken.Claims {
         return try {
             Jwts.parser()
