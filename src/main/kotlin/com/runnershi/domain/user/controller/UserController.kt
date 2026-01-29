@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -41,6 +42,15 @@ class UserController(
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
         userService.updateRegion(userId, request.regionId)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "계정 탈퇴", description = "계정 탈퇴 (정책 확정 후 개인정보 처리 추가 예정)")
+    @DeleteMapping("/me")
+    fun withdraw(
+        @AuthenticationPrincipal userId: Long
+    ): ApiResponse<Unit> {
+        userService.withdraw(userId)
         return ApiResponse.success(Unit)
     }
 }
