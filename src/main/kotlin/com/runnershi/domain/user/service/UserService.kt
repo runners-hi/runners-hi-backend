@@ -5,9 +5,11 @@ import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class UserService(
@@ -40,5 +42,16 @@ class UserService(
         }
 
         user.regionId = regionId
+    }
+
+    @Transactional
+    fun withdraw(userId: Long) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        user.status = UserStatus.WITHDRAWN
+        user.deletedAt = LocalDateTime.now()
+        user.refreshToken = null
+        user.refreshTokenExpiresAt = null
     }
 }
