@@ -77,6 +77,8 @@ class AuthService(
 
     private fun createNewUser(provider: Provider, userInfo: UserInfo): User {
         val nickname = generateUniqueNickname()
+        // TODO: 기본 프로필 이미지 URL 목록 (4~5개) 확정 후 랜덤 부여 로직 추가
+        //       val profileImageUrl = DefaultProfileImages.random()
 
         val user = User(
             provider = provider,
