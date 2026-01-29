@@ -61,11 +61,6 @@ class User(
     @Column(nullable = false)
     var status: UserStatus = UserStatus.PENDING,
 
-    // 약관
-    var termsAgreedAt: LocalDateTime? = null,
-    var privacyAgreedAt: LocalDateTime? = null,
-    var marketingAgreedAt: LocalDateTime? = null,
-
     // 알림
     @Column(nullable = false)
     var notificationEnabled: Boolean = true,
