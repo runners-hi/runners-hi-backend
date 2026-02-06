@@ -18,6 +18,11 @@ class UserService(
 ) {
 
     @Transactional(readOnly = true)
+    fun checkNicknameAvailable(nickname: String): Boolean {
+        return !userRepository.existsByNickname(nickname)
+    }
+
+    @Transactional(readOnly = true)
     fun getMyProfile(userId: Long): MyProfileResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }

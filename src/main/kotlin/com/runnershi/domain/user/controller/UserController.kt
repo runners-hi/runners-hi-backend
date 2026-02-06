@@ -3,6 +3,7 @@ package com.runnershi.domain.user.controller
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.region.dto.RegionUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.NicknameCheckResponse
 import com.runnershi.domain.user.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -13,10 +14,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 // TODO: 마이페이지 편집 API (화면 확정 후 구현)
-//       - PATCH /api/users/nickname - 닉네임 변경
 //       - PATCH /api/users/profile-image - 프로필 이미지 변경
 //       - PATCH /api/users/notification - 알림 설정 변경
 @Tag(name = "User", description = "유저 API")
@@ -25,6 +26,16 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val userService: UserService
 ) {
+
+    @Operation(summary = "닉네임 중복 체크", description = "닉네임 사용 가능 여부 확인")
+    @GetMapping("/nickname/check")
+    fun checkNickname(
+        @AuthenticationPrincipal userId: Long,
+        @RequestParam nickname: String
+    ): ApiResponse<NicknameCheckResponse> {
+        val available = userService.checkNicknameAvailable(nickname)
+        return ApiResponse.success(NicknameCheckResponse(available))
+    }
 
     @Operation(summary = "내 정보 조회", description = "마이페이지 내 정보 조회")
     @GetMapping("/me")

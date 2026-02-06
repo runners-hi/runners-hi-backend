@@ -3,6 +3,10 @@ package com.runnershi.domain.user.dto
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.user.entity.User
 
+data class NicknameCheckResponse(
+    val available: Boolean
+)
+
 data class MyProfileResponse(
     val nickname: String,
     val profileImageUrl: String?,
