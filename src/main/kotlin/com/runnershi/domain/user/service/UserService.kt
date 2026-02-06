@@ -17,6 +17,18 @@ class UserService(
     private val regionRepository: RegionRepository
 ) {
 
+    @Transactional
+    fun updateNickname(userId: Long, nickname: String) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        if (userRepository.existsByNickname(nickname)) {
+            throw BusinessException(ErrorCode.DUPLICATE_NICKNAME)
+        }
+
+        user.nickname = nickname
+    }
+
     @Transactional(readOnly = true)
     fun checkNicknameAvailable(nickname: String): Boolean {
         return !userRepository.existsByNickname(nickname)

@@ -4,6 +4,7 @@ import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.region.dto.RegionUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.dto.NicknameCheckResponse
+import com.runnershi.domain.user.dto.NicknameUpdateRequest
 import com.runnershi.domain.user.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -26,6 +27,16 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val userService: UserService
 ) {
+
+    @Operation(summary = "닉네임 변경", description = "사용자 닉네임 변경")
+    @PatchMapping("/nickname")
+    fun updateNickname(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: NicknameUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateNickname(userId, request.nickname)
+        return ApiResponse.success(Unit)
+    }
 
     @Operation(summary = "닉네임 중복 체크", description = "닉네임 사용 가능 여부 확인")
     @GetMapping("/nickname/check")
