@@ -53,8 +53,9 @@ class User(
     @Column(nullable = false)
     var experience: Int = 0,
 
+    // 단위: m (미터)
     @Column(name = "total_distance", nullable = false)
-    var totalDistance: Double = 0.0,
+    var totalDistance: Int = 0,
 
     // 상태
     @Enumerated(EnumType.STRING)
