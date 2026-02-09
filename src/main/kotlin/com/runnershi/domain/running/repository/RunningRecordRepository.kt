@@ -25,14 +25,14 @@ interface RunningRecordRepository : JpaRepository<RunningRecord, Long> {
         SELECT COALESCE(SUM(r.distance), 0) FROM RunningRecord r
         WHERE r.userId = :userId
     """)
-    fun sumDistanceByUserId(userId: Long): Double
+    fun sumDistanceByUserId(userId: Long): Long
 
     @Query("""
         SELECT COALESCE(SUM(r.distance), 0) FROM RunningRecord r
         WHERE r.userId = :userId
         AND r.runningDate BETWEEN :startDate AND :endDate
     """)
-    fun sumDistanceByUserIdAndDateRange(userId: Long, startDate: LocalDate, endDate: LocalDate): Double
+    fun sumDistanceByUserIdAndDateRange(userId: Long, startDate: LocalDate, endDate: LocalDate): Long
 
     @Query("""
         SELECT COALESCE(SUM(r.duration), 0) FROM RunningRecord r
