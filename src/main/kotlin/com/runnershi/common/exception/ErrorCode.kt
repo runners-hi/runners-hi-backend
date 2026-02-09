@@ -34,5 +34,9 @@ enum class ErrorCode(
 
     // Running
     RUNNING_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "Running record not found"),
-    INVALID_RUNNING_DATA(HttpStatus.BAD_REQUEST, "R002", "Invalid running data")
+    INVALID_RUNNING_DATA(HttpStatus.BAD_REQUEST, "R002", "Invalid running data"),
+
+    // Mission
+    MISSION_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "미션 그룹을 찾을 수 없습니다"),
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "미션을 찾을 수 없습니다")
 }
