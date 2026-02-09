@@ -51,3 +51,22 @@ data class DailyRecordResponse(
     val runCount: Int,
     val records: List<RunningRecordResponse>
 )
+
+// === 주간 요약 집계 ===
+// - 주간 기준: 월요일 ~ 일요일 (ISO 8601 표준, 한국 관행 동일)
+// - 글로벌 대응 시 주간 시작일 계산 로직만 변경하면 됨
+// - 별도 summary 테이블 없이 running_records DB 레벨 집계 쿼리 사용
+// - totalDistance: 주간 전체 거리 합산 (m)
+// - totalDuration: 주간 전체 시간 합산 (초)
+// - averagePace: totalDuration / (totalDistance / 1000.0) → 초/km, 거리 0이면 0
+// - runCount: 주간 전체 러닝 횟수
+// - runDays: 주간 중 실제 러닝한 일수 (하루에 여러 번 뛰어도 1일로 카운트)
+data class WeeklySummaryResponse(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val totalDistance: Long,
+    val totalDuration: Int,
+    val averagePace: Int,
+    val runCount: Int,
+    val runDays: Int
+)

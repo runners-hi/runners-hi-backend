@@ -3,6 +3,7 @@ package com.runnershi.domain.running.controller
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.running.dto.DailyRecordResponse
 import com.runnershi.domain.running.dto.RunningRecordListResponse
+import com.runnershi.domain.running.dto.WeeklySummaryResponse
 import com.runnershi.domain.running.service.RunningRecordService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -20,6 +21,16 @@ import java.time.LocalDate
 class RunningRecordController(
     private val runningRecordService: RunningRecordService
 ) {
+
+    @Operation(summary = "주간 요약 조회", description = "해당 날짜가 속한 주(월~일)의 러닝 요약 (기본값: 이번 주)")
+    @GetMapping("/weekly")
+    fun getWeeklySummary(
+        @AuthenticationPrincipal userId: Long,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate?
+    ): ApiResponse<WeeklySummaryResponse> {
+        val response = runningRecordService.getWeeklySummary(userId, date ?: LocalDate.now())
+        return ApiResponse.success(response)
+    }
 
     @Operation(summary = "일일 기록 조회", description = "특정 날짜의 러닝 기록 합산 및 개별 기록 조회 (기본값: 오늘)")
     @GetMapping("/daily")
