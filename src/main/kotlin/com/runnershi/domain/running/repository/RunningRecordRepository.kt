@@ -9,7 +9,13 @@ import java.time.LocalDate
 
 interface RunningRecordRepository : JpaRepository<RunningRecord, Long> {
 
-    fun findByUserIdOrderByRunningDateDescCreatedAtDesc(userId: Long, pageable: Pageable): Page<RunningRecord>
+    @Query("""
+        SELECT r FROM RunningRecord r
+        WHERE r.userId = :userId
+        AND (:cursor IS NULL OR r.id < :cursor)
+        ORDER BY r.id DESC
+    """)
+    fun findByUserIdWithCursor(userId: Long, cursor: Long?, pageable: Pageable): List<RunningRecord>
 
     fun findByUserIdAndRunningDate(userId: Long, runningDate: LocalDate): List<RunningRecord>
 
