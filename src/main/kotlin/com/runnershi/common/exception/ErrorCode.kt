@@ -41,5 +41,8 @@ enum class ErrorCode(
     MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "미션을 찾을 수 없습니다"),
 
     // Notice
-    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "공지사항을 찾을 수 없습니다")
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "공지사항을 찾을 수 없습니다"),
+
+    // App
+    PLATFORM_NOT_FOUND(HttpStatus.BAD_REQUEST, "AP001", "지원하지 않는 플랫폼입니다")
 }
