@@ -38,5 +38,8 @@ enum class ErrorCode(
 
     // Mission
     MISSION_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "미션 그룹을 찾을 수 없습니다"),
-    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "미션을 찾을 수 없습니다")
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "M002", "미션을 찾을 수 없습니다"),
+
+    // Notice
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "공지사항을 찾을 수 없습니다")
 }
