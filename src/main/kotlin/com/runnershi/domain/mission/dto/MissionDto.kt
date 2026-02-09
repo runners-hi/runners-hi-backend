@@ -4,6 +4,7 @@ import com.runnershi.domain.mission.entity.ConditionType
 import com.runnershi.domain.mission.entity.MissionGroupType
 import com.runnershi.domain.mission.entity.MissionStatus
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 // === 미션 그룹 응답 (미션 탭용) ===
 // - 그룹 정보 + 소속 미션 목록 + 유저별 달성 상태 포함
@@ -42,4 +43,21 @@ data class HomeMissionResponse(
     val startDate: LocalDate?,
     val endDate: LocalDate?,
     val missions: List<MissionResponse>
+)
+
+// === 내 미션 현황 응답 ===
+data class MyMissionSummaryResponse(
+    val totalMissions: Int,
+    val achievedCount: Int,
+    val inProgressCount: Int,
+    val recentAchievements: List<AchievedMissionResponse>
+)
+
+data class AchievedMissionResponse(
+    val missionId: Long,
+    val missionName: String,
+    val missionImageUrl: String?,
+    val groupName: String,
+    val conditionType: ConditionType,
+    val achievedAt: LocalDateTime?
 )

@@ -3,6 +3,7 @@ package com.runnershi.domain.mission.controller
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.mission.dto.HomeMissionResponse
 import com.runnershi.domain.mission.dto.MissionGroupResponse
+import com.runnershi.domain.mission.dto.MyMissionSummaryResponse
 import com.runnershi.domain.mission.service.MissionService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -44,6 +45,15 @@ class MissionController(
         @PathVariable groupId: Long
     ): ApiResponse<MissionGroupResponse> {
         val response = missionService.getMissionGroupDetail(userId, groupId)
+        return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "내 미션 현황 조회", description = "달성/진행 카운트 및 최근 달성 미션 목록")
+    @GetMapping("/me")
+    fun getMyMissionSummary(
+        @AuthenticationPrincipal userId: Long
+    ): ApiResponse<MyMissionSummaryResponse> {
+        val response = missionService.getMyMissionSummary(userId)
         return ApiResponse.success(response)
     }
 }

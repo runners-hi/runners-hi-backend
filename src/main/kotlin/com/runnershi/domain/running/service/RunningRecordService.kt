@@ -3,6 +3,7 @@ package com.runnershi.domain.running.service
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.level.service.LevelService
+import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.running.dto.DailyRecordResponse
 import com.runnershi.domain.running.dto.RunningRecordCreateRequest
 import com.runnershi.domain.running.dto.RunningRecordListResponse
@@ -22,7 +23,8 @@ import java.time.temporal.TemporalAdjusters
 class RunningRecordService(
     private val runningRecordRepository: RunningRecordRepository,
     private val userRepository: UserRepository,
-    private val levelService: LevelService
+    private val levelService: LevelService,
+    private val missionChecker: MissionChecker
 ) {
 
     // === 러닝 기록 저장 ===
@@ -74,6 +76,9 @@ class RunningRecordService(
         // val (newLevel, newTier) = levelService.calculateLevelAndTier(user.experience)
         // user.level = newLevel
         // user.tier = newTier
+
+        // 미션 달성 체크
+        missionChecker.checkOnRunningRecordCreated(userId, record)
 
         return RunningRecordResponse.from(record)
     }
