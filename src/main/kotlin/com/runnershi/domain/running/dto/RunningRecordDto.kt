@@ -1,8 +1,32 @@
 package com.runnershi.domain.running.dto
 
 import com.runnershi.domain.running.entity.RunningRecord
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
 import java.time.LocalDateTime
+
+// === 러닝 기록 저장 ===
+// - 클라이언트: distance, duration, calories, startedAt, endedAt, memo 전달
+// - 서버 계산: pace (duration / distance(km) → 초/km), runningDate (startedAt 기준)
+// - 저장 후: User.totalDistance 갱신, 경험치/레벨/티어 재계산
+data class RunningRecordCreateRequest(
+    @field:Min(value = 1, message = "거리는 1m 이상이어야 합니다")
+    val distance: Int,
+
+    @field:Min(value = 1, message = "시간은 1초 이상이어야 합니다")
+    val duration: Int,
+
+    val calories: Int? = null,
+
+    @field:NotNull(message = "시작 시간은 필수입니다")
+    val startedAt: LocalDateTime,
+
+    @field:NotNull(message = "종료 시간은 필수입니다")
+    val endedAt: LocalDateTime,
+
+    val memo: String? = null
+)
 
 data class RunningRecordResponse(
     val id: Long,

@@ -2,14 +2,19 @@ package com.runnershi.domain.running.controller
 
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.running.dto.DailyRecordResponse
+import com.runnershi.domain.running.dto.RunningRecordCreateRequest
 import com.runnershi.domain.running.dto.RunningRecordListResponse
+import com.runnershi.domain.running.dto.RunningRecordResponse
 import com.runnershi.domain.running.dto.WeeklySummaryResponse
 import com.runnershi.domain.running.service.RunningRecordService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -21,6 +26,16 @@ import java.time.LocalDate
 class RunningRecordController(
     private val runningRecordService: RunningRecordService
 ) {
+
+    @Operation(summary = "러닝 기록 저장", description = "러닝 기록 저장 (pace, runningDate 서버 계산)")
+    @PostMapping
+    fun createRunningRecord(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: RunningRecordCreateRequest
+    ): ApiResponse<RunningRecordResponse> {
+        val response = runningRecordService.createRunningRecord(userId, request)
+        return ApiResponse.success(response)
+    }
 
     @Operation(summary = "주간 요약 조회", description = "해당 날짜가 속한 주(월~일)의 러닝 요약 (기본값: 이번 주)")
     @GetMapping("/weekly")
