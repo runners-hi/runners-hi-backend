@@ -2,6 +2,7 @@ package com.runnershi.domain.user.service
 
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
@@ -14,7 +15,8 @@ import java.time.LocalDateTime
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val regionRepository: RegionRepository
+    private val regionRepository: RegionRepository,
+    private val missionChecker: MissionChecker
 ) {
 
     @Transactional
@@ -59,6 +61,9 @@ class UserService(
         }
 
         user.regionId = regionId
+
+        // 미션 달성 체크 (REGION_SET)
+        missionChecker.checkOnRegionSet(userId)
     }
 
     @Transactional

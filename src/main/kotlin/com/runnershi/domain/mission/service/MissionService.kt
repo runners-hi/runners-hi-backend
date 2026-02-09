@@ -2,9 +2,11 @@ package com.runnershi.domain.mission.service
 
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.mission.dto.AchievedMissionResponse
 import com.runnershi.domain.mission.dto.HomeMissionResponse
 import com.runnershi.domain.mission.dto.MissionGroupResponse
 import com.runnershi.domain.mission.dto.MissionResponse
+import com.runnershi.domain.mission.dto.MyMissionSummaryResponse
 import com.runnershi.domain.mission.entity.Mission
 import com.runnershi.domain.mission.entity.MissionStatus
 import com.runnershi.domain.mission.entity.UserMission
@@ -91,6 +93,55 @@ class MissionService(
             missions = missions.map { mission ->
                 toMissionResponse(mission, userMissionMap[mission.id])
             }
+        )
+    }
+
+    // 내 미션 현황: 달성/진행 카운트 + 최근 달성 목록
+    @Transactional(readOnly = true)
+    fun getMyMissionSummary(userId: Long): MyMissionSummaryResponse {
+        val achievedCount = userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.ACHIEVED)
+        val inProgressCount = userMissionRepository.countByUserIdAndStatus(userId, MissionStatus.IN_PROGRESS)
+
+        val recentAchievements = userMissionRepository
+            .findByUserIdAndStatusOrderByAchievedAtDesc(userId, MissionStatus.ACHIEVED)
+            .take(10)
+
+        val missionIds = recentAchievements.map { it.missionId }
+        val missions = if (missionIds.isNotEmpty()) {
+            missionRepository.findAllById(missionIds).associateBy { it.id }
+        } else emptyMap()
+
+        // 그룹명 조회
+        val groupIds = missions.values.map { it.missionGroupId }.distinct()
+        val groups = if (groupIds.isNotEmpty()) {
+            missionGroupRepository.findAllById(groupIds).associateBy { it.id }
+        } else emptyMap()
+
+        // 전체 활성 미션 수
+        val allGroups = missionGroupRepository.findAllByOrderByTypeAscCreatedAtDesc()
+        val allGroupIds = allGroups.map { it.id }
+        val totalMissions = if (allGroupIds.isNotEmpty()) {
+            missionRepository.findByMissionGroupIdIn(allGroupIds).size
+        } else 0
+
+        val achievedMissions = recentAchievements.mapNotNull { userMission ->
+            val mission = missions[userMission.missionId] ?: return@mapNotNull null
+            val group = groups[mission.missionGroupId]
+            AchievedMissionResponse(
+                missionId = mission.id,
+                missionName = mission.name,
+                missionImageUrl = mission.imageUrl,
+                groupName = group?.name ?: "",
+                conditionType = mission.conditionType,
+                achievedAt = userMission.achievedAt
+            )
+        }
+
+        return MyMissionSummaryResponse(
+            totalMissions = totalMissions,
+            achievedCount = achievedCount,
+            inProgressCount = inProgressCount,
+            recentAchievements = achievedMissions
         )
     }
 
