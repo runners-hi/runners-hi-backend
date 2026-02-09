@@ -30,6 +30,8 @@ enum class ErrorCode(
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "U003", "Nickname already exists"),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "U004", "Invalid password"),
 
+    REGION_NOT_SELECTED(HttpStatus.BAD_REQUEST, "U005", "지역을 먼저 선택해주세요"),
+
     // Running
     RUNNING_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "Running record not found"),
     INVALID_RUNNING_DATA(HttpStatus.BAD_REQUEST, "R002", "Invalid running data")
