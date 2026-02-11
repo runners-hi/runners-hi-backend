@@ -9,6 +9,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        auto_quote_keyword: true
 
   flyway:
     enabled: false
@@ -17,6 +20,12 @@ jwt:
   secret: test-secret-key-for-testing-purposes-only-minimum-256-bits-required
   access-token-validity: 3600000
   refresh-token-validity: 604800000
+
+oauth:
+  google:
+    client-id: test-google-client-id
+  apple:
+    bundle-id: test-apple-bundle-id
 
 logging:
   level:
