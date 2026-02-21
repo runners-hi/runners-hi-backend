@@ -11,6 +11,7 @@ import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.dto.ProfileImageUploadResponse
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -22,6 +23,8 @@ class UserService(
     private val missionChecker: MissionChecker,
     private val storageService: StorageService
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
         private val ALLOWED_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")
@@ -88,11 +91,19 @@ class UserService(
 
     @Transactional
     fun confirmProfileImage(userId: Long, objectKey: String) {
+        if (!objectKey.startsWith("profiles/$userId/")) {
+            throw BusinessException(ErrorCode.INVALID_OBJECT_KEY)
+        }
+
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        // 이전 이미지가 있으면 GCS에서 삭제
-        user.profileImageUrl?.let { storageService.deleteObject(it) }
+        // 이전 이미지가 있으면 GCS에서 삭제 (실패해도 새 이미지 확정 진행)
+        user.profileImageUrl?.let {
+            try { storageService.deleteObject(it) } catch (e: Exception) {
+                log.warn("이전 프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
+            }
+        }
 
         user.profileImageUrl = objectKey
     }
@@ -102,7 +113,11 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        user.profileImageUrl?.let { storageService.deleteObject(it) }
+        user.profileImageUrl?.let {
+            try { storageService.deleteObject(it) } catch (e: Exception) {
+                log.warn("프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
+            }
+        }
         user.profileImageUrl = null
     }
 

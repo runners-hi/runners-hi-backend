@@ -22,6 +22,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -381,6 +382,38 @@ class UserServiceTest {
             }
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
         }
+
+        @Test
+        @DisplayName("다른 유저의 objectKey로 확정 시도 - 예외 발생")
+        fun invalidObjectKey_otherUser() {
+            val exception = assertThrows<BusinessException> {
+                userService.confirmProfileImage(1L, "profiles/999/malicious.jpg")
+            }
+            assertEquals(ErrorCode.INVALID_OBJECT_KEY, exception.errorCode)
+        }
+
+        @Test
+        @DisplayName("잘못된 형식의 objectKey - 예외 발생")
+        fun invalidObjectKey_wrongFormat() {
+            val exception = assertThrows<BusinessException> {
+                userService.confirmProfileImage(1L, "some/random/path.jpg")
+            }
+            assertEquals(ErrorCode.INVALID_OBJECT_KEY, exception.errorCode)
+        }
+
+        @Test
+        @DisplayName("이전 이미지 삭제 실패해도 새 이미지 확정은 진행")
+        fun deleteFailure_stillConfirms() {
+            val user = createUser()
+            user.profileImageUrl = "profiles/1/old-image.jpg"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            doThrow(RuntimeException("GCS 오류"))
+                .whenever(storageService).deleteObject("profiles/1/old-image.jpg")
+
+            userService.confirmProfileImage(1L, "profiles/1/new-image.jpg")
+
+            assertEquals("profiles/1/new-image.jpg", user.profileImageUrl)
+        }
     }
 
     @Nested
@@ -422,6 +455,20 @@ class UserServiceTest {
                 userService.removeProfileImage(999L)
             }
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        }
+
+        @Test
+        @DisplayName("GCS 삭제 실패해도 profileImageUrl은 null 처리")
+        fun deleteFailure_stillRemoves() {
+            val user = createUser()
+            user.profileImageUrl = "profiles/1/old-image.jpg"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            doThrow(RuntimeException("GCS 오류"))
+                .whenever(storageService).deleteObject("profiles/1/old-image.jpg")
+
+            userService.removeProfileImage(1L)
+
+            assertNull(user.profileImageUrl)
         }
     }
 }

@@ -33,6 +33,7 @@ enum class ErrorCode(
     REGION_NOT_SELECTED(HttpStatus.BAD_REQUEST, "U005", "지역을 먼저 선택해주세요"),
     INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "U006", "지원하지 않는 이미지 형식입니다"),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "U007", "이미지 업로드에 실패했습니다"),
+    INVALID_OBJECT_KEY(HttpStatus.BAD_REQUEST, "U008", "잘못된 이미지 경로입니다"),
 
     // Running
     RUNNING_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "Running record not found"),
