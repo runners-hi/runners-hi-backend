@@ -1,5 +1,6 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.AppleClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.mission.service.MissionChecker
@@ -20,6 +21,8 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.quality.Strictness
@@ -44,22 +47,27 @@ class UserServiceTest {
     @Mock
     lateinit var missionChecker: MissionChecker
 
+    @Mock
+    lateinit var appleClient: AppleClient
+
     private lateinit var userService: UserService
 
     @BeforeEach
     fun setUp() {
-        userService = UserService(userRepository, regionRepository, missionChecker)
+        userService = UserService(userRepository, regionRepository, missionChecker, appleClient)
     }
 
     private fun createUser(
         id: Long = 1L,
+        provider: Provider = Provider.KAKAO,
+        providerId: String = "kakao-123",
         nickname: String = "테스트러너",
         regionId: Long? = null,
         status: UserStatus = UserStatus.ACTIVE
     ): User {
         val user = User(
-            provider = Provider.KAKAO,
-            providerId = "kakao-123",
+            provider = provider,
+            providerId = providerId,
             nickname = nickname,
             status = status
         )
@@ -249,6 +257,81 @@ class UserServiceTest {
                 userService.withdraw(999L)
             }
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        }
+
+        @Test
+        @DisplayName("Apple 유저 탈퇴 시 revoke API 호출")
+        fun appleUser_callsRevoke() {
+            val user = createUser(provider = Provider.APPLE, providerId = "apple-123")
+            user.appleRefreshToken = "apple-refresh-token"
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(appleClient).revokeToken("apple-refresh-token")
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+            assertNotNull(user.deletedAt)
+            assertNull(user.refreshToken)
+            assertNull(user.appleRefreshToken)
+        }
+
+        @Test
+        @DisplayName("Apple 유저 탈퇴 시 revoke 실패해도 탈퇴 정상 진행")
+        fun appleUser_revokeFails_withdrawStillSucceeds() {
+            val user = createUser(provider = Provider.APPLE, providerId = "apple-123")
+            user.appleRefreshToken = "apple-refresh-token"
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            doThrow(RuntimeException("Apple API 오류"))
+                .whenever(appleClient).revokeToken("apple-refresh-token")
+
+            userService.withdraw(1L)
+
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+            assertNotNull(user.deletedAt)
+            assertNull(user.refreshToken)
+            assertNull(user.appleRefreshToken)
+        }
+
+        @Test
+        @DisplayName("Google 유저 탈퇴 시 revoke 미호출")
+        fun googleUser_noRevoke() {
+            val user = createUser(provider = Provider.GOOGLE, providerId = "google-123")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(appleClient, never()).revokeToken(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+        }
+
+        @Test
+        @DisplayName("Kakao 유저 탈퇴 시 revoke 미호출")
+        fun kakaoUser_noRevoke() {
+            val user = createUser(provider = Provider.KAKAO, providerId = "kakao-123")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(appleClient, never()).revokeToken(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+        }
+
+        @Test
+        @DisplayName("Apple 유저지만 appleRefreshToken 없으면 revoke 미호출")
+        fun appleUser_noRefreshToken_noRevoke() {
+            val user = createUser(provider = Provider.APPLE, providerId = "apple-123")
+            user.appleRefreshToken = null
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(appleClient, never()).revokeToken(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
         }
     }
 }

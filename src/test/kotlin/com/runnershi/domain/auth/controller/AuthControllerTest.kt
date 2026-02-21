@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
@@ -91,7 +93,7 @@ class AuthControllerTest : ControllerTest() {
         @DisplayName("유효한 애플 토큰으로 로그인 성공")
         fun success() {
             val authResponse = AuthResponse("access-token", "refresh-token", true)
-            whenever(authService.loginWithApple(any())).thenReturn(authResponse)
+            whenever(authService.loginWithApple(any(), anyOrNull())).thenReturn(authResponse)
 
             mockMvc.perform(
                 post("/api/auth/apple")
@@ -101,6 +103,34 @@ class AuthControllerTest : ControllerTest() {
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"))
+        }
+
+        @Test
+        @DisplayName("authorizationCode와 함께 로그인 성공")
+        fun withAuthorizationCode_success() {
+            val authResponse = AuthResponse("access-token", "refresh-token", true)
+            whenever(authService.loginWithApple(any(), anyOrNull())).thenReturn(authResponse)
+
+            mockMvc.perform(
+                post("/api/auth/apple")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("idToken" to "apple-token", "authorizationCode" to "auth-code-123")))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accessToken").value("access-token"))
+        }
+
+        @Test
+        @DisplayName("idToken이 빈 값이면 400 반환")
+        fun blankToken_returns400() {
+            mockMvc.perform(
+                post("/api/auth/apple")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("idToken" to "")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
         }
     }
 
