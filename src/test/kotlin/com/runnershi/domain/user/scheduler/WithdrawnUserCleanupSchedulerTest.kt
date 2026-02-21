@@ -17,6 +17,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -47,17 +48,18 @@ class WithdrawnUserCleanupSchedulerTest {
     @Mock
     lateinit var termsAgreementRepository: TermsAgreementRepository
 
+    private lateinit var cleanupService: WithdrawnUserCleanupService
     private lateinit var scheduler: WithdrawnUserCleanupScheduler
 
     @BeforeEach
     fun setUp() {
-        scheduler = WithdrawnUserCleanupScheduler(
-            userRepository,
+        cleanupService = WithdrawnUserCleanupService(
             runningRecordRepository,
             userMissionRepository,
             userLevelSnapshotRepository,
             termsAgreementRepository
         )
+        scheduler = WithdrawnUserCleanupScheduler(userRepository, cleanupService)
     }
 
     private fun createWithdrawnUser(
@@ -161,8 +163,8 @@ class WithdrawnUserCleanupSchedulerTest {
             val user2 = createWithdrawnUser(id = 2L)
             whenever(userRepository.findByStatusAndDeletedAtBefore(eq(UserStatus.WITHDRAWN), any()))
                 .thenReturn(listOf(user1, user2))
-            whenever(runningRecordRepository.deleteAllByUserId(1L))
-                .thenThrow(RuntimeException("DB 오류"))
+            doThrow(RuntimeException("DB 오류"))
+                .whenever(runningRecordRepository).deleteAllByUserId(1L)
 
             scheduler.cleanupWithdrawnUsers()
 
