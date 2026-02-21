@@ -5,6 +5,9 @@ import com.runnershi.domain.region.dto.RegionUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.dto.NicknameCheckResponse
 import com.runnershi.domain.user.dto.NicknameUpdateRequest
+import com.runnershi.domain.user.dto.ProfileImageConfirmRequest
+import com.runnershi.domain.user.dto.ProfileImageUploadRequest
+import com.runnershi.domain.user.dto.ProfileImageUploadResponse
 import com.runnershi.domain.user.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -13,13 +16,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 // TODO: 마이페이지 편집 API (화면 확정 후 구현)
-//       - PATCH /api/users/profile-image - 프로필 이미지 변경
 //       - PATCH /api/users/notification - 알림 설정 변경
 @Tag(name = "User", description = "유저 API")
 @RestController
@@ -64,6 +67,35 @@ class UserController(
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
         userService.updateRegion(userId, request.regionId)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "프로필 이미지 업로드 URL 발급", description = "GCS Presigned URL을 발급하여 클라이언트가 직접 이미지를 업로드할 수 있도록 합니다")
+    @PostMapping("/me/profile-image/upload-url")
+    fun getProfileImageUploadUrl(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: ProfileImageUploadRequest
+    ): ApiResponse<ProfileImageUploadResponse> {
+        val response = userService.generateProfileImageUploadUrl(userId, request.contentType)
+        return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "프로필 이미지 확정", description = "이미지 업로드 완료 후 DB에 object key를 저장합니다")
+    @PatchMapping("/me/profile-image")
+    fun confirmProfileImage(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: ProfileImageConfirmRequest
+    ): ApiResponse<Unit> {
+        userService.confirmProfileImage(userId, request.objectKey)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "프로필 이미지 삭제", description = "프로필 이미지를 제거합니다")
+    @DeleteMapping("/me/profile-image")
+    fun removeProfileImage(
+        @AuthenticationPrincipal userId: Long
+    ): ApiResponse<Unit> {
+        userService.removeProfileImage(userId)
         return ApiResponse.success(Unit)
     }
 

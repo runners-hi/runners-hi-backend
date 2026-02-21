@@ -13,6 +13,21 @@ data class NicknameCheckResponse(
     val available: Boolean
 )
 
+data class ProfileImageUploadRequest(
+    @field:NotBlank(message = "콘텐츠 타입은 필수입니다")
+    val contentType: String
+)
+
+data class ProfileImageUploadResponse(
+    val presignedUrl: String,
+    val objectKey: String
+)
+
+data class ProfileImageConfirmRequest(
+    @field:NotBlank(message = "오브젝트 키는 필수입니다")
+    val objectKey: String
+)
+
 data class MyProfileResponse(
     val nickname: String,
     val profileImageUrl: String?,
