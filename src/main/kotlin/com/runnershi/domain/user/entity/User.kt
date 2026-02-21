@@ -72,6 +72,9 @@ class User(
     var refreshToken: String? = null,
     var refreshTokenExpiresAt: LocalDateTime? = null,
 
+    // Apple refresh token (계정 탈퇴 시 revoke용)
+    var appleRefreshToken: String? = null,
+
     // 시간
     var lastLoginAt: LocalDateTime? = null,
     var deletedAt: LocalDateTime? = null
