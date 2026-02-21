@@ -1,5 +1,7 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.GoogleClient
+import com.runnershi.auth.client.KakaoClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.mission.service.MissionChecker
@@ -20,6 +22,8 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.quality.Strictness
@@ -44,22 +48,30 @@ class UserServiceTest {
     @Mock
     lateinit var missionChecker: MissionChecker
 
+    @Mock
+    lateinit var googleClient: GoogleClient
+
+    @Mock
+    lateinit var kakaoClient: KakaoClient
+
     private lateinit var userService: UserService
 
     @BeforeEach
     fun setUp() {
-        userService = UserService(userRepository, regionRepository, missionChecker)
+        userService = UserService(userRepository, regionRepository, missionChecker, googleClient, kakaoClient)
     }
 
     private fun createUser(
         id: Long = 1L,
+        provider: Provider = Provider.KAKAO,
+        providerId: String = "kakao-123",
         nickname: String = "테스트러너",
         regionId: Long? = null,
         status: UserStatus = UserStatus.ACTIVE
     ): User {
         val user = User(
-            provider = Provider.KAKAO,
-            providerId = "kakao-123",
+            provider = provider,
+            providerId = providerId,
             nickname = nickname,
             status = status
         )
@@ -249,6 +261,81 @@ class UserServiceTest {
                 userService.withdraw(999L)
             }
             assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        }
+
+        @Test
+        @DisplayName("Kakao 유저 탈퇴 시 unlinkUser 호출")
+        fun kakaoUserWithdraw_callsUnlink() {
+            val user = createUser(provider = Provider.KAKAO, providerId = "kakao-456")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(kakaoClient).unlinkUser("kakao-456")
+            verify(googleClient, never()).revokeToken(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+        }
+
+        @Test
+        @DisplayName("Google 유저 탈퇴 시 revokeToken 호출 (로그만 남김)")
+        fun googleUserWithdraw_callsRevoke() {
+            val user = createUser(provider = Provider.GOOGLE, providerId = "google-789")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(googleClient).revokeToken("google-789")
+            verify(kakaoClient, never()).unlinkUser(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+        }
+
+        @Test
+        @DisplayName("Apple 유저 탈퇴 시 서버 revoke 없이 탈퇴 진행")
+        fun appleUserWithdraw_noServerRevoke() {
+            val user = createUser(provider = Provider.APPLE, providerId = "apple-999")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(kakaoClient, never()).unlinkUser(any())
+            verify(googleClient, never()).revokeToken(any())
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+            assertNotNull(user.deletedAt)
+        }
+
+        @Test
+        @DisplayName("Kakao revoke 실패해도 탈퇴는 정상 진행")
+        fun kakaoRevokeFails_withdrawContinues() {
+            val user = createUser(provider = Provider.KAKAO, providerId = "kakao-456")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            doThrow(RuntimeException("Kakao API 오류"))
+                .whenever(kakaoClient).unlinkUser("kakao-456")
+
+            userService.withdraw(1L)
+
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+            assertNotNull(user.deletedAt)
+            assertNull(user.refreshToken)
+        }
+
+        @Test
+        @DisplayName("Google revoke 실패해도 탈퇴는 정상 진행")
+        fun googleRevokeFails_withdrawContinues() {
+            val user = createUser(provider = Provider.GOOGLE, providerId = "google-789")
+            user.refreshToken = "some-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            doThrow(RuntimeException("Google API 오류"))
+                .whenever(googleClient).revokeToken("google-789")
+
+            userService.withdraw(1L)
+
+            assertEquals(UserStatus.WITHDRAWN, user.status)
+            assertNotNull(user.deletedAt)
+            assertNull(user.refreshToken)
         }
     }
 }

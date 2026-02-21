@@ -259,6 +259,83 @@ class AuthServiceTest {
     }
 
     @Nested
+    @DisplayName("탈퇴 유저 계정 복구")
+    inner class WithdrawnUserRecovery {
+
+        @Test
+        @DisplayName("WITHDRAWN 유저 30일 이내 로그인 시 계정 복구 (ACTIVE, deletedAt null)")
+        fun withdrawnUser_withinGracePeriod_recovers() {
+            val userInfo = UserInfo("kakao-123", "test@kakao.com", "카카오유저")
+            val withdrawnUser = createUser(
+                provider = Provider.KAKAO,
+                providerId = "kakao-123",
+                status = UserStatus.WITHDRAWN
+            )
+            withdrawnUser.deletedAt = LocalDateTime.now().minusDays(10)
+
+            whenever(kakaoClient.verify("kakao-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "kakao-123"))
+                .thenReturn(withdrawnUser)
+            stubTokenCreation(withdrawnUser.id)
+
+            val response = authService.loginWithKakao("kakao-token")
+
+            assertEquals(UserStatus.ACTIVE, withdrawnUser.status)
+            assertNull(withdrawnUser.deletedAt)
+            assertNotNull(withdrawnUser.lastLoginAt)
+            assertFalse(response.isNewUser)
+            assertEquals("access-token", response.accessToken)
+        }
+
+        @Test
+        @DisplayName("WITHDRAWN 유저 30일 경과 후 로그인 시 복구 불가 (예외 발생)")
+        fun withdrawnUser_afterGracePeriod_throwsException() {
+            val userInfo = UserInfo("kakao-123", "test@kakao.com", "카카오유저")
+            val withdrawnUser = createUser(
+                provider = Provider.KAKAO,
+                providerId = "kakao-123",
+                status = UserStatus.WITHDRAWN
+            )
+            withdrawnUser.deletedAt = LocalDateTime.now().minusDays(31)
+
+            whenever(kakaoClient.verify("kakao-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "kakao-123"))
+                .thenReturn(withdrawnUser)
+
+            val exception = assertThrows<BusinessException> {
+                authService.loginWithKakao("kakao-token")
+            }
+
+            assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+            assertEquals(UserStatus.WITHDRAWN, withdrawnUser.status)
+        }
+
+        @Test
+        @DisplayName("WITHDRAWN 유저 정확히 30일째 로그인 시 복구 가능 (경계값)")
+        fun withdrawnUser_exactlyOnGraceDay_recovers() {
+            val userInfo = UserInfo("google-123", "test@gmail.com", "구글유저")
+            val withdrawnUser = createUser(
+                provider = Provider.GOOGLE,
+                providerId = "google-123",
+                status = UserStatus.WITHDRAWN
+            )
+            // 29일 23시간 전에 탈퇴 → 아직 30일 미만
+            withdrawnUser.deletedAt = LocalDateTime.now().minusDays(29).minusHours(23)
+
+            whenever(googleClient.verify("google-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.GOOGLE, "google-123"))
+                .thenReturn(withdrawnUser)
+            stubTokenCreation(withdrawnUser.id)
+
+            val response = authService.loginWithGoogle("google-token")
+
+            assertEquals(UserStatus.ACTIVE, withdrawnUser.status)
+            assertNull(withdrawnUser.deletedAt)
+            assertFalse(response.isNewUser)
+        }
+    }
+
+    @Nested
     @DisplayName("로그아웃")
     inner class Logout {
 
