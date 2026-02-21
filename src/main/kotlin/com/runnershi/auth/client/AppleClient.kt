@@ -134,7 +134,11 @@ class AppleClient(
         val now = Date()
         val expiration = Date(now.time + CLIENT_SECRET_VALIDITY_MS)
 
-        val ecKey = ECKey.parseFromPEMEncodedObjects(privateKey) as ECKey
+        val ecKey = try {
+            ECKey.parseFromPEMEncodedObjects(privateKey) as ECKey
+        } catch (e: Exception) {
+            throw IllegalStateException("Apple private key PEM 파싱 실패. 키 형식을 확인하세요.", e)
+        }
 
         val header = JWSHeader.Builder(JWSAlgorithm.ES256)
             .keyID(keyId)
