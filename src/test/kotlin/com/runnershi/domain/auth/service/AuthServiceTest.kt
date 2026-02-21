@@ -1,5 +1,6 @@
 package com.runnershi.domain.auth.service
 
+import com.runnershi.auth.client.AppleClient
 import com.runnershi.auth.client.AuthClient
 import com.runnershi.auth.client.UserInfo
 import com.runnershi.common.exception.BusinessException
@@ -22,7 +23,9 @@ import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doThrow
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.test.util.ReflectionTestUtils
@@ -49,7 +52,8 @@ class AuthServiceTest {
 
     private lateinit var kakaoClient: AuthClient
     private lateinit var googleClient: AuthClient
-    private lateinit var appleClient: AuthClient
+    private lateinit var appleAuthClient: AuthClient
+    private lateinit var appleClient: AppleClient
 
     private lateinit var authService: AuthService
 
@@ -57,17 +61,19 @@ class AuthServiceTest {
     fun setUp() {
         kakaoClient = mock<AuthClient>()
         googleClient = mock<AuthClient>()
-        appleClient = mock<AuthClient>()
+        appleAuthClient = mock<AuthClient>()
+        appleClient = mock<AppleClient>()
 
         whenever(kakaoClient.getProvider()).thenReturn(Provider.KAKAO)
         whenever(googleClient.getProvider()).thenReturn(Provider.GOOGLE)
-        whenever(appleClient.getProvider()).thenReturn(Provider.APPLE)
+        whenever(appleAuthClient.getProvider()).thenReturn(Provider.APPLE)
 
         authService = AuthService(
             userRepository,
             jwtTokenProvider,
-            listOf(kakaoClient, googleClient, appleClient),
-            nicknameGenerator
+            listOf(kakaoClient, googleClient, appleAuthClient),
+            nicknameGenerator,
+            appleClient
         )
     }
 
@@ -160,7 +166,7 @@ class AuthServiceTest {
             val userInfo = UserInfo("apple-123", "test@apple.com", null)
             val savedUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
 
-            whenever(appleClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(appleAuthClient.verify("apple-token")).thenReturn(userInfo)
             whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123")).thenReturn(null)
             whenever(nicknameGenerator.generateUnique(any())).thenReturn("빠른치타1234")
             whenever(userRepository.save(any<User>())).thenReturn(savedUser)
@@ -170,6 +176,88 @@ class AuthServiceTest {
 
             assertTrue(response.isNewUser)
             assertEquals("access-token", response.accessToken)
+        }
+
+        @Test
+        @DisplayName("애플 로그인 - authorizationCode와 함께 보내면 appleRefreshToken 저장")
+        fun appleLogin_withAuthorizationCode_savesRefreshToken() {
+            val userInfo = UserInfo("apple-123", "test@apple.com", null)
+            val savedUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
+
+            whenever(appleAuthClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123"))
+                .thenReturn(null)
+                .thenReturn(savedUser)
+            whenever(nicknameGenerator.generateUnique(any())).thenReturn("빠른치타1234")
+            whenever(userRepository.save(any<User>())).thenReturn(savedUser)
+            stubTokenCreation(savedUser.id)
+            whenever(appleClient.exchangeCodeForRefreshToken("auth-code-123")).thenReturn("apple-refresh-token")
+
+            val response = authService.loginWithApple("apple-token", "auth-code-123")
+
+            assertTrue(response.isNewUser)
+            assertEquals("access-token", response.accessToken)
+            verify(appleClient).exchangeCodeForRefreshToken("auth-code-123")
+            assertEquals("apple-refresh-token", savedUser.appleRefreshToken)
+        }
+
+        @Test
+        @DisplayName("애플 로그인 - authorizationCode 없이 idToken만 보내도 정상 동작")
+        fun appleLogin_withoutAuthorizationCode_success() {
+            val userInfo = UserInfo("apple-123", "test@apple.com", null)
+            val savedUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
+
+            whenever(appleAuthClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123")).thenReturn(null)
+            whenever(nicknameGenerator.generateUnique(any())).thenReturn("빠른치타1234")
+            whenever(userRepository.save(any<User>())).thenReturn(savedUser)
+            stubTokenCreation(savedUser.id)
+
+            val response = authService.loginWithApple("apple-token", null)
+
+            assertTrue(response.isNewUser)
+            assertEquals("access-token", response.accessToken)
+            verify(appleClient, never()).exchangeCodeForRefreshToken(any())
+        }
+
+        @Test
+        @DisplayName("애플 로그인 - refreshToken 교환 실패해도 로그인은 정상 진행")
+        fun appleLogin_exchangeFails_loginStillSucceeds() {
+            val userInfo = UserInfo("apple-123", "test@apple.com", null)
+            val savedUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
+
+            whenever(appleAuthClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123")).thenReturn(null)
+            whenever(nicknameGenerator.generateUnique(any())).thenReturn("빠른치타1234")
+            whenever(userRepository.save(any<User>())).thenReturn(savedUser)
+            stubTokenCreation(savedUser.id)
+            whenever(appleClient.exchangeCodeForRefreshToken("auth-code-123"))
+                .thenThrow(RuntimeException("Apple API 오류"))
+
+            val response = authService.loginWithApple("apple-token", "auth-code-123")
+
+            assertTrue(response.isNewUser)
+            assertEquals("access-token", response.accessToken)
+        }
+
+        @Test
+        @DisplayName("애플 로그인 - 기존 유저 재로그인 시 appleRefreshToken 갱신")
+        fun appleLogin_existingUser_withAuthCode_updatesRefreshToken() {
+            val userInfo = UserInfo("apple-123", "test@apple.com", null)
+            val existingUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
+            existingUser.appleRefreshToken = "old-apple-refresh-token"
+
+            whenever(appleAuthClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123"))
+                .thenReturn(existingUser)
+            stubTokenCreation(existingUser.id)
+            whenever(appleClient.exchangeCodeForRefreshToken("auth-code-new")).thenReturn("new-apple-refresh-token")
+
+            val response = authService.loginWithApple("apple-token", "auth-code-new")
+
+            assertFalse(response.isNewUser)
+            verify(appleClient).exchangeCodeForRefreshToken("auth-code-new")
+            assertEquals("new-apple-refresh-token", existingUser.appleRefreshToken)
         }
     }
 
