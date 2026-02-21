@@ -1,5 +1,6 @@
 package com.runnershi.domain.auth.service
 
+import com.runnershi.auth.client.AppleClient
 import com.runnershi.auth.client.AuthClient
 import com.runnershi.auth.client.UserInfo
 import com.runnershi.common.exception.BusinessException
@@ -12,6 +13,7 @@ import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -21,8 +23,11 @@ class AuthService(
     private val userRepository: UserRepository,
     private val jwtTokenProvider: JwtTokenProvider,
     private val authClients: List<AuthClient>,
-    private val nicknameGenerator: NicknameGenerator
+    private val nicknameGenerator: NicknameGenerator,
+    private val appleClient: AppleClient
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun loginWithKakao(accessToken: String): AuthResponse {
@@ -42,7 +47,21 @@ class AuthService(
     fun loginWithApple(idToken: String, authorizationCode: String? = null): AuthResponse {
         val client = getClient(Provider.APPLE)
         val userInfo = client.verify(idToken)
-        return processLogin(Provider.APPLE, userInfo)
+        val response = processLogin(Provider.APPLE, userInfo)
+
+        if (authorizationCode != null) {
+            try {
+                val appleRefreshToken = appleClient.exchangeCodeForRefreshToken(authorizationCode)
+                if (appleRefreshToken != null) {
+                    val user = userRepository.findByProviderAndProviderId(Provider.APPLE, userInfo.providerId)
+                    user?.appleRefreshToken = appleRefreshToken
+                }
+            } catch (e: Exception) {
+                log.warn("Apple refresh token 교환 실패, 로그인은 정상 진행: {}", e.message)
+            }
+        }
+
+        return response
     }
 
     private fun getClient(provider: Provider): AuthClient {
