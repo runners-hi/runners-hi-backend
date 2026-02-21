@@ -47,7 +47,7 @@ class AuthController(
     fun loginWithApple(
         @Valid @RequestBody request: AppleLoginRequest
     ): ApiResponse<AuthResponse> {
-        val response = authService.loginWithApple(request.idToken)
+        val response = authService.loginWithApple(request.idToken, request.authorizationCode)
         return ApiResponse.success(response)
     }
 

@@ -39,7 +39,7 @@ class AuthService(
     }
 
     @Transactional
-    fun loginWithApple(idToken: String): AuthResponse {
+    fun loginWithApple(idToken: String, authorizationCode: String? = null): AuthResponse {
         val client = getClient(Provider.APPLE)
         val userInfo = client.verify(idToken)
         return processLogin(Provider.APPLE, userInfo)
