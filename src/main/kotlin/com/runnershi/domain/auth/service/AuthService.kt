@@ -12,6 +12,7 @@ import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -23,6 +24,12 @@ class AuthService(
     private val authClients: List<AuthClient>,
     private val nicknameGenerator: NicknameGenerator
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    companion object {
+        private const val WITHDRAWAL_GRACE_DAYS = 30L
+    }
 
     @Transactional
     fun loginWithKakao(accessToken: String): AuthResponse {
@@ -53,11 +60,21 @@ class AuthService(
     private fun processLogin(provider: Provider, userInfo: UserInfo): AuthResponse {
         val existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.providerId)
 
-        val (user, isNewUser) = if (existingUser != null) {
-            updateLastLogin(existingUser)
-            existingUser to false
-        } else {
-            createNewUser(provider, userInfo) to true
+        val (user, isNewUser) = when {
+            existingUser == null -> {
+                createNewUser(provider, userInfo) to true
+            }
+            existingUser.status == UserStatus.WITHDRAWN -> {
+                handleWithdrawnUser(existingUser) to false
+            }
+            existingUser.status == UserStatus.DELETED -> {
+                // DELETED 상태는 배치에서 providerId가 마스킹되므로 여기 도달하지 않지만 안전장치
+                createNewUser(provider, userInfo) to true
+            }
+            else -> {
+                updateLastLogin(existingUser)
+                existingUser to false
+            }
         }
 
         val accessToken = jwtTokenProvider.createAccessToken(user.id)
@@ -89,6 +106,26 @@ class AuthService(
         )
 
         return userRepository.save(user)
+    }
+
+    private fun handleWithdrawnUser(user: User): User {
+        val withdrawnAt = user.deletedAt
+            ?: throw IllegalStateException("WITHDRAWN 상태인데 deletedAt이 null입니다: userId=${user.id}")
+
+        val gracePeriodEnd = withdrawnAt.plusDays(WITHDRAWAL_GRACE_DAYS)
+
+        return if (LocalDateTime.now().isBefore(gracePeriodEnd)) {
+            // 유예 기간 내: 계정 복구
+            log.info("탈퇴 유예 기간 내 복구: userId={}", user.id)
+            user.status = UserStatus.ACTIVE
+            user.deletedAt = null
+            updateLastLogin(user)
+            user
+        } else {
+            // 유예 기간 초과: 이 경우 배치에서 이미 처리했어야 하지만, 배치 전 접근 시 안전장치
+            log.warn("유예 기간 초과 사용자 로그인 시도 (배치 미처리): userId={}", user.id)
+            throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        }
     }
 
     private fun updateLastLogin(user: User) {
