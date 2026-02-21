@@ -1,13 +1,16 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.AppleClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -16,8 +19,11 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val regionRepository: RegionRepository,
-    private val missionChecker: MissionChecker
+    private val missionChecker: MissionChecker,
+    private val appleClient: AppleClient
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun updateNickname(userId: Long, nickname: String) {
@@ -70,6 +76,16 @@ class UserService(
     fun withdraw(userId: Long) {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        // Apple 유저의 경우 refresh token revoke
+        if (user.provider == Provider.APPLE && user.appleRefreshToken != null) {
+            try {
+                appleClient.revokeToken(user.appleRefreshToken!!)
+            } catch (e: Exception) {
+                log.warn("Apple token revoke 실패, 탈퇴는 정상 진행: {}", e.message)
+            }
+            user.appleRefreshToken = null
+        }
 
         user.status = UserStatus.WITHDRAWN
         user.deletedAt = LocalDateTime.now()

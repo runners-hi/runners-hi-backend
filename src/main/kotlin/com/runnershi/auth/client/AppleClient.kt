@@ -42,6 +42,7 @@ class AppleClient(
         private const val APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
         private const val APPLE_ISSUER = "https://appleid.apple.com"
         private const val APPLE_TOKEN_URL = "https://appleid.apple.com/auth/token"
+        private const val APPLE_REVOKE_URL = "https://appleid.apple.com/auth/revoke"
         private const val CLIENT_SECRET_VALIDITY_MS = 5 * 60 * 1000L // 5분
     }
 
@@ -94,6 +95,38 @@ class AppleClient(
         } catch (e: Exception) {
             log.error("Apple refresh token 교환 실패: {}", e.message)
             return null
+        }
+    }
+
+    fun revokeToken(refreshToken: String) {
+        if (teamId.isBlank() || keyId.isBlank() || privateKey.isBlank()) {
+            log.warn("Apple OAuth 설정이 누락되어 token revoke를 건너뜁니다")
+            return
+        }
+
+        try {
+            val clientSecret = generateClientSecret()
+
+            val params = LinkedMultiValueMap<String, String>().apply {
+                add("client_id", bundleId)
+                add("client_secret", clientSecret)
+                add("token", refreshToken)
+                add("token_type_hint", "refresh_token")
+            }
+
+            val headers = HttpHeaders().apply {
+                contentType = MediaType.APPLICATION_FORM_URLENCODED
+            }
+
+            restTemplate.postForObject(
+                APPLE_REVOKE_URL,
+                HttpEntity(params, headers),
+                String::class.java
+            )
+
+            log.info("Apple token revoke 성공")
+        } catch (e: Exception) {
+            log.error("Apple token revoke 실패: {}", e.message)
         }
     }
 
