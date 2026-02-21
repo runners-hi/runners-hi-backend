@@ -1,13 +1,17 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.GoogleClient
+import com.runnershi.auth.client.KakaoClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -16,8 +20,12 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val regionRepository: RegionRepository,
-    private val missionChecker: MissionChecker
+    private val missionChecker: MissionChecker,
+    private val googleClient: GoogleClient,
+    private val kakaoClient: KakaoClient
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun updateNickname(userId: Long, nickname: String) {
@@ -71,9 +79,24 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
+        // OAuth 연결 해제 (실패해도 탈퇴 진행)
+        revokeOAuthConnection(user.provider, user.providerId)
+
         user.status = UserStatus.WITHDRAWN
         user.deletedAt = LocalDateTime.now()
         user.refreshToken = null
         user.refreshTokenExpiresAt = null
+    }
+
+    private fun revokeOAuthConnection(provider: Provider, providerId: String) {
+        try {
+            when (provider) {
+                Provider.GOOGLE -> googleClient.revokeToken(providerId)
+                Provider.KAKAO -> kakaoClient.unlinkUser(providerId)
+                Provider.APPLE -> log.info("Apple revoke는 클라이언트에서 처리 (providerId={})", providerId)
+            }
+        } catch (e: Exception) {
+            log.warn("OAuth revoke 실패 (탈퇴는 계속 진행): provider={}, error={}", provider, e.message)
+        }
     }
 }

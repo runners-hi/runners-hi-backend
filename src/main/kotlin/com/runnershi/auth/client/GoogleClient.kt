@@ -6,6 +6,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.user.entity.Provider
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component
 class GoogleClient(
     @Value("\${oauth.google.client-id}") private val clientId: String
 ) : AuthClient {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     private val verifier: GoogleIdTokenVerifier = GoogleIdTokenVerifier.Builder(
         NetHttpTransport(),
@@ -37,5 +40,13 @@ class GoogleClient(
             email = payload.email,
             nickname = payload["name"] as? String
         )
+    }
+
+    /**
+     * Google OAuth 연결 해제.
+     * 현재 서버에 access token을 저장하지 않으므로 revoke 불가 — 로그만 남기고 skip.
+     */
+    fun revokeToken(providerId: String) {
+        log.info("Google revoke 생략: access token 미저장 (providerId={})", providerId)
     }
 }
