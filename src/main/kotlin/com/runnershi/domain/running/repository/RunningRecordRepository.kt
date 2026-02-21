@@ -53,4 +53,6 @@ interface RunningRecordRepository : JpaRepository<RunningRecord, Long> {
         AND r.runningDate BETWEEN :startDate AND :endDate
     """)
     fun countRunningDaysByUserIdAndDateRange(userId: Long, startDate: LocalDate, endDate: LocalDate): Int
+
+    fun deleteAllByUserId(userId: Long)
 }

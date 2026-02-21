@@ -6,10 +6,12 @@ import com.runnershi.domain.user.entity.UserStatus
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import java.time.LocalDateTime
 
 interface UserRepository : JpaRepository<User, Long> {
     fun findByProviderAndProviderId(provider: Provider, providerId: String): User?
     fun existsByNickname(nickname: String): Boolean
+    fun findByStatusAndDeletedAtBefore(status: UserStatus, deletedAt: LocalDateTime): List<User>
 
     // === 랭킹 쿼리 ===
     // 정렬: totalDistance DESC, id ASC (동점 시 가입순)

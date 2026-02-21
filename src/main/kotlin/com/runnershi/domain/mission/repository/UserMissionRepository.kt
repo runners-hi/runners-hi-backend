@@ -15,4 +15,6 @@ interface UserMissionRepository : JpaRepository<UserMission, Long> {
     fun countByUserIdAndStatus(userId: Long, status: MissionStatus): Int
 
     fun findByUserIdAndStatusOrderByAchievedAtDesc(userId: Long, status: MissionStatus): List<UserMission>
+
+    fun deleteAllByUserId(userId: Long)
 }
