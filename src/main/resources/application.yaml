@@ -26,6 +26,10 @@ oauth:
   apple:
     bundle-id: ${APPLE_BUNDLE_ID:}
 
+gcs:
+  bucket-name: ${GCS_BUCKET_NAME:runners-hi-profile}
+  project-id: ${GCS_PROJECT_ID:runners-hi}
+
 management:
   endpoints:
     web:

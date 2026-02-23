@@ -6,6 +6,7 @@ import com.runnershi.common.security.JwtTokenProvider
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.entity.RegionType
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.ProfileImageUploadResponse
 import com.runnershi.domain.user.service.UserService
 import com.runnershi.support.ControllerTest
 import org.junit.jupiter.api.BeforeEach
@@ -22,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
@@ -175,6 +177,109 @@ class UserControllerTest : ControllerTest() {
         fun success() {
             mockMvc.perform(
                 delete("/api/users/me")
+                    .header("Authorization", "Bearer $accessToken")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/users/me/profile-image/upload-url")
+    inner class GetProfileImageUploadUrl {
+
+        @Test
+        @DisplayName("Presigned URL 발급 성공")
+        fun success() {
+            val uploadResponse = ProfileImageUploadResponse(
+                presignedUrl = "https://storage.googleapis.com/test-bucket/presigned-url",
+                objectKey = "profiles/1/test-uuid.jpg"
+            )
+            whenever(userService.generateProfileImageUploadUrl(any(), eq("image/jpeg"))).thenReturn(uploadResponse)
+
+            mockMvc.perform(
+                post("/api/users/me/profile-image/upload-url")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("contentType" to "image/jpeg")))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.presignedUrl").value("https://storage.googleapis.com/test-bucket/presigned-url"))
+                .andExpect(jsonPath("$.data.objectKey").value("profiles/1/test-uuid.jpg"))
+        }
+
+        @Test
+        @DisplayName("빈 contentType이면 400 반환")
+        fun blankContentType_returns400() {
+            mockMvc.perform(
+                post("/api/users/me/profile-image/upload-url")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("contentType" to "")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
+        }
+
+        @Test
+        @DisplayName("허용되지 않은 이미지 타입이면 400 반환")
+        fun unsupportedImageType_returns400() {
+            doThrow(BusinessException(ErrorCode.INVALID_IMAGE_TYPE))
+                .whenever(userService).generateProfileImageUploadUrl(any(), any())
+
+            mockMvc.perform(
+                post("/api/users/me/profile-image/upload-url")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("contentType" to "image/gif")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("U006"))
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/users/me/profile-image")
+    inner class ConfirmProfileImage {
+
+        @Test
+        @DisplayName("프로필 이미지 확정 성공")
+        fun success() {
+            mockMvc.perform(
+                patch("/api/users/me/profile-image")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("objectKey" to "profiles/1/test-uuid.jpg")))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+        }
+
+        @Test
+        @DisplayName("빈 objectKey이면 400 반환")
+        fun blankObjectKey_returns400() {
+            mockMvc.perform(
+                patch("/api/users/me/profile-image")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("objectKey" to "")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/users/me/profile-image")
+    inner class RemoveProfileImage {
+
+        @Test
+        @DisplayName("프로필 이미지 삭제 성공")
+        fun success() {
+            mockMvc.perform(
+                delete("/api/users/me/profile-image")
                     .header("Authorization", "Bearer $accessToken")
             )
                 .andExpect(status().isOk)

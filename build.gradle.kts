@@ -45,6 +45,10 @@ dependencies {
     // Apple OAuth (JWT/JWKS 처리)
     implementation("com.nimbusds:nimbus-jose-jwt:10.3")
 
+    // Google Cloud Storage
+    implementation(platform("com.google.cloud:libraries-bom:26.55.0"))
+    implementation("com.google.cloud:google-cloud-storage")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
 
