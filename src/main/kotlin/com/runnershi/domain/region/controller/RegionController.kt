@@ -1,11 +1,13 @@
 package com.runnershi.domain.region.controller
 
 import com.runnershi.common.response.ApiResponse
+import com.runnershi.domain.region.dto.DistrictResponse
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.service.RegionService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -20,6 +22,15 @@ class RegionController(
     @GetMapping
     fun getAllRegions(): ApiResponse<List<RegionResponse>> {
         val response = regionService.getAllRegions()
+        return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "세부 지역 목록 조회", description = "선택한 지역의 구/군 목록 조회")
+    @GetMapping("/{regionId}/districts")
+    fun getDistricts(
+        @PathVariable regionId: Long
+    ): ApiResponse<List<DistrictResponse>> {
+        val response = regionService.getDistricts(regionId)
         return ApiResponse.success(response)
     }
 }

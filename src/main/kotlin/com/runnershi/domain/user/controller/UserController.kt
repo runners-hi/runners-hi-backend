@@ -63,7 +63,7 @@ class UserController(
         @AuthenticationPrincipal userId: Long,
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
-        userService.updateRegion(userId, request.regionId)
+        userService.updateRegion(userId, request.regionId, request.districtId)
         return ApiResponse.success(Unit)
     }
 

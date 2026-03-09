@@ -6,7 +6,9 @@ import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.mission.repository.UserMissionRepository
+import com.runnershi.domain.region.dto.DistrictResponse
 import com.runnershi.domain.region.dto.RegionResponse
+import com.runnershi.domain.region.repository.DistrictRepository
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.terms.repository.TermsAgreementRepository
 import com.runnershi.domain.user.entity.Provider
@@ -22,6 +24,7 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val regionRepository: RegionRepository,
+    private val districtRepository: DistrictRepository,
     private val missionChecker: MissionChecker,
     private val termsAgreementRepository: TermsAgreementRepository,
     private val userMissionRepository: UserMissionRepository,
@@ -59,21 +62,32 @@ class UserService(
                 .map { RegionResponse.from(it) }
                 .orElse(null)
         }
+        val district = user.districtId?.let { districtId ->
+            districtRepository.findById(districtId)
+                .map { DistrictResponse.from(it) }
+                .orElse(null)
+        }
 
-        return MyProfileResponse.from(user, region)
+        return MyProfileResponse.from(user, region, district)
     }
 
     @Transactional
-    fun updateRegion(userId: Long, regionId: Long) {
+    fun updateRegion(userId: Long, regionId: Long, districtId: Long?) {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        // 지역 존재 여부 확인
         if (!regionRepository.existsById(regionId)) {
             throw BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 지역입니다")
         }
 
+        val district = districtId?.let {
+            districtRepository.findByIdAndRegionId(it, regionId)
+                ?: throw BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 세부 지역입니다")
+        } ?: districtRepository.findFirstByRegionIdAndIsDefaultTrue(regionId)
+            ?: throw BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "기본 세부 지역이 존재하지 않습니다")
+
         user.regionId = regionId
+        user.districtId = district.id
 
         // 미션 달성 체크 (REGION_SET)
         missionChecker.checkOnRegionSet(userId)
@@ -95,6 +109,7 @@ class UserService(
         user.nickname = "withdrawn_${user.id}"
         user.profileImageUrl = null
         user.regionId = null
+        user.districtId = null
         user.notificationEnabled = false
         user.fcmToken = null
         user.appleRefreshToken = null

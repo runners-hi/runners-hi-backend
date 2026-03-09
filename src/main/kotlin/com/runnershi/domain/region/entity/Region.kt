@@ -9,8 +9,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 
-// TODO: 동 단위 확장 시 districts 테이블 추가 (region_id FK, 1:N 관계)
-//       - 시 선택 후 해당 시의 동만 조회: GET /api/regions/{regionId}/districts
+// 세부 지역(구/군)은 districts 테이블에서 관리
 @Entity
 @Table(name = "regions")
 class Region(
