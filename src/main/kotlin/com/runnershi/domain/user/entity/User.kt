@@ -69,6 +69,7 @@ class User(
     var fcmToken: String? = null,
 
     // 토큰 (stateful 방식)
+    var appleRefreshToken: String? = null,
     var refreshToken: String? = null,
     var refreshTokenExpiresAt: LocalDateTime? = null,
 
