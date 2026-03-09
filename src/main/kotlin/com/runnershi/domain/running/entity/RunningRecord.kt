@@ -3,6 +3,8 @@ package com.runnershi.domain.running.entity
 import com.runnershi.common.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Index
 import jakarta.persistence.Table
 import java.time.LocalDate
@@ -17,6 +19,7 @@ import java.time.LocalDateTime
 // === 정책 ===
 // - pace는 클라이언트에서 받지 않고 서버에서 계산
 // - runningDate는 startedAt 기준으로 서버에서 설정
+// - source가 없으면 MANUAL로 처리
 // - 유저 탈퇴(soft delete) 시 러닝 기록은 유지
 // - 기록 생성 시 User.totalDistance 동기화 필요
 
@@ -63,6 +66,10 @@ class RunningRecord(
 
     @Column(name = "ended_at", nullable = false)
     val endedAt: LocalDateTime,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val source: RunningRecordSource = RunningRecordSource.MANUAL,
 
     val memo: String? = null
 ) : BaseEntity()

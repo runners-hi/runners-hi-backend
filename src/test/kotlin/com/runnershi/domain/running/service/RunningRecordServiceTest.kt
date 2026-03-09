@@ -6,8 +6,10 @@ import com.runnershi.domain.level.service.LevelService
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.running.dto.RunningRecordCreateRequest
 import com.runnershi.domain.running.entity.RunningRecord
+import com.runnershi.domain.running.entity.RunningRecordSource
 import com.runnershi.domain.running.repository.RunningRecordRepository
 import com.runnershi.domain.user.entity.Provider
+import com.runnershi.domain.user.entity.Tier
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.repository.UserRepository
 import org.junit.jupiter.api.BeforeEach
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.mockito.quality.Strictness
@@ -47,6 +50,8 @@ class RunningRecordServiceTest {
     @BeforeEach
     fun setUp() {
         service = RunningRecordService(runningRecordRepository, userRepository, levelService, missionChecker)
+        whenever(levelService.calculateLevelAndTier(any())).thenReturn(1 to Tier.BRONZE)
+        whenever(runningRecordRepository.findByUserIdAndRunningDate(any(), any())).thenReturn(emptyList())
     }
 
     private fun createUser(id: Long = 1L, totalDistance: Int = 0): User {
@@ -56,7 +61,14 @@ class RunningRecordServiceTest {
         return user
     }
 
-    private fun createRecord(id: Long = 1L, userId: Long = 1L, distance: Int = 5000, duration: Int = 1800, date: LocalDate = LocalDate.of(2025, 1, 6)): RunningRecord {
+    private fun createRecord(
+        id: Long = 1L,
+        userId: Long = 1L,
+        distance: Int = 5000,
+        duration: Int = 1800,
+        date: LocalDate = LocalDate.of(2025, 1, 6),
+        source: RunningRecordSource = RunningRecordSource.MANUAL
+    ): RunningRecord {
         val record = RunningRecord(
             userId = userId,
             runningDate = date,
@@ -64,13 +76,18 @@ class RunningRecordServiceTest {
             duration = duration,
             pace = (duration / (distance / 1000.0)).toInt(),
             startedAt = date.atTime(7, 0),
-            endedAt = date.atTime(7, 30)
+            endedAt = date.atTime(7, 30),
+            source = source
         )
         ReflectionTestUtils.setField(record, "id", id)
         return record
     }
 
-    private fun createRequest(distance: Int = 5000, duration: Int = 1800): RunningRecordCreateRequest {
+    private fun createRequest(
+        distance: Int = 5000,
+        duration: Int = 1800,
+        source: RunningRecordSource = RunningRecordSource.MANUAL
+    ): RunningRecordCreateRequest {
         val now = LocalDateTime.of(2025, 1, 6, 7, 0)
         return RunningRecordCreateRequest(
             distance = distance,
@@ -78,6 +95,7 @@ class RunningRecordServiceTest {
             calories = 300,
             startedAt = now,
             endedAt = now.plusMinutes(30),
+            source = source,
             memo = "테스트 러닝"
         )
     }
@@ -90,15 +108,18 @@ class RunningRecordServiceTest {
         @DisplayName("기록 저장 성공 - pace 계산, totalDistance 갱신, 미션 체크")
         fun success() {
             val user = createUser(totalDistance = 10000)
-            val request = createRequest(distance = 5000, duration = 1800)
+            val request = createRequest(distance = 5000, duration = 1800, source = RunningRecordSource.HEALTH_KIT)
             val savedRecord = createRecord()
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
             whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+            whenever(levelService.calculateLevelAndTier(500)).thenReturn(2 to Tier.BRONZE)
 
             val response = service.createRunningRecord(1L, request)
 
             assertEquals(15000, user.totalDistance) // 10000 + 5000
+            assertEquals(500, user.experience) // 5km * 100xp * 1.0
+            assertEquals(2, user.level)
             verify(missionChecker).checkOnRunningRecordCreated(any(), any())
             assertEquals(savedRecord.id, response.id)
         }
@@ -116,6 +137,62 @@ class RunningRecordServiceTest {
             val response = service.createRunningRecord(1L, request)
 
             assertEquals(expectedPace, response.pace)
+        }
+
+        @Test
+        @DisplayName("MANUAL source는 0.7 배율 적용")
+        fun manualSourceMultiplier() {
+            val user = createUser()
+            val request = createRequest(distance = 5000, duration = 1800, source = RunningRecordSource.MANUAL)
+            val savedRecord = createRecord()
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+            whenever(levelService.calculateLevelAndTier(350)).thenReturn(2 to Tier.BRONZE)
+
+            service.createRunningRecord(1L, request)
+
+            assertEquals(350, user.experience)
+        }
+
+        @Test
+        @DisplayName("최소 거리/시간 조건 미달이면 XP 0")
+        fun belowMinimumThreshold_noExperience() {
+            val user = createUser()
+            val request = createRequest(distance = 700, duration = 299, source = RunningRecordSource.HEALTH_KIT)
+            val savedRecord = createRecord(distance = 700, duration = 299)
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+
+            service.createRunningRecord(1L, request)
+
+            assertEquals(0, user.experience)
+            verify(levelService, never()).calculateLevelAndTier(any())
+        }
+
+        @Test
+        @DisplayName("일일 XP 상한(1200) 적용")
+        fun dailyCapApplied() {
+            val user = createUser()
+            val request = createRequest(distance = 5000, duration = 1800, source = RunningRecordSource.HEALTH_KIT)
+            val savedRecord = createRecord()
+            val existing = createRecord(
+                id = 99L,
+                distance = 10000,
+                duration = 3600,
+                source = RunningRecordSource.HEALTH_CONNECT
+            )
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            whenever(runningRecordRepository.findByUserIdAndRunningDate(1L, LocalDate.of(2025, 1, 6)))
+                .thenReturn(listOf(existing))
+            whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+            whenever(levelService.calculateLevelAndTier(200)).thenReturn(2 to Tier.BRONZE)
+
+            service.createRunningRecord(1L, request)
+
+            assertEquals(200, user.experience) // 기존 1000xp + 신규 500xp -> 상한으로 200xp만 반영
         }
 
         @Test
