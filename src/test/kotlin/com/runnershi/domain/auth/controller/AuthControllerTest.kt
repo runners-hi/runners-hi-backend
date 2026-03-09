@@ -91,16 +91,34 @@ class AuthControllerTest : ControllerTest() {
         @DisplayName("유효한 애플 토큰으로 로그인 성공")
         fun success() {
             val authResponse = AuthResponse("access-token", "refresh-token", true)
-            whenever(authService.loginWithApple(any())).thenReturn(authResponse)
+            whenever(authService.loginWithApple(any(), any())).thenReturn(authResponse)
 
             mockMvc.perform(
                 post("/api/auth/apple")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(toJson(mapOf("idToken" to "apple-token")))
+                    .content(toJson(mapOf(
+                        "idToken" to "apple-token",
+                        "authorizationCode" to "apple-auth-code"
+                    )))
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value("access-token"))
+        }
+
+        @Test
+        @DisplayName("authorizationCode가 빈 값이면 400 반환")
+        fun blankAuthorizationCode_returns400() {
+            mockMvc.perform(
+                post("/api/auth/apple")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf(
+                        "idToken" to "apple-token",
+                        "authorizationCode" to ""
+                    )))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
         }
     }
 

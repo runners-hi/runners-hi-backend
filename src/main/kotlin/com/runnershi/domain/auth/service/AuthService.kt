@@ -1,6 +1,7 @@
 package com.runnershi.domain.auth.service
 
 import com.runnershi.auth.client.AuthClient
+import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.auth.client.UserInfo
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
@@ -21,6 +22,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val jwtTokenProvider: JwtTokenProvider,
     private val authClients: List<AuthClient>,
+    private val appleTokenClient: AppleTokenClient,
     private val nicknameGenerator: NicknameGenerator
 ) {
 
@@ -28,21 +30,22 @@ class AuthService(
     fun loginWithKakao(accessToken: String): AuthResponse {
         val client = getClient(Provider.KAKAO)
         val userInfo = client.verify(accessToken)
-        return processLogin(Provider.KAKAO, userInfo)
+        return processLogin(Provider.KAKAO, userInfo, appleRefreshToken = null)
     }
 
     @Transactional
     fun loginWithGoogle(idToken: String): AuthResponse {
         val client = getClient(Provider.GOOGLE)
         val userInfo = client.verify(idToken)
-        return processLogin(Provider.GOOGLE, userInfo)
+        return processLogin(Provider.GOOGLE, userInfo, appleRefreshToken = null)
     }
 
     @Transactional
-    fun loginWithApple(idToken: String): AuthResponse {
+    fun loginWithApple(idToken: String, authorizationCode: String): AuthResponse {
         val client = getClient(Provider.APPLE)
         val userInfo = client.verify(idToken)
-        return processLogin(Provider.APPLE, userInfo)
+        val appleRefreshToken = appleTokenClient.exchangeAuthorizationCode(authorizationCode)
+        return processLogin(Provider.APPLE, userInfo, appleRefreshToken)
     }
 
     private fun getClient(provider: Provider): AuthClient {
@@ -50,7 +53,7 @@ class AuthService(
             ?: throw IllegalStateException("AuthClient not found: $provider")
     }
 
-    private fun processLogin(provider: Provider, userInfo: UserInfo): AuthResponse {
+    private fun processLogin(provider: Provider, userInfo: UserInfo, appleRefreshToken: String?): AuthResponse {
         val existingUser = userRepository.findByProviderAndProviderId(provider, userInfo.providerId)
 
         val (user, isNewUser) = if (existingUser != null) {
@@ -67,6 +70,9 @@ class AuthService(
         user.refreshToken = refreshToken
         user.refreshTokenExpiresAt = LocalDateTime.now()
             .plusSeconds(jwtTokenProvider.getRefreshTokenValidity() / 1000)
+        if (provider == Provider.APPLE && !appleRefreshToken.isNullOrBlank()) {
+            user.appleRefreshToken = appleRefreshToken
+        }
 
         return AuthResponse(
             accessToken = accessToken,
