@@ -36,6 +36,7 @@ class AppleTokenClient(
 
     companion object {
         private const val APPLE_TOKEN_URL = "https://appleid.apple.com/auth/token"
+        private const val APPLE_REVOKE_URL = "https://appleid.apple.com/auth/revoke"
         private const val APPLE_AUDIENCE = "https://appleid.apple.com"
     }
 
@@ -73,6 +74,33 @@ class AppleTokenClient(
             throw e
         } catch (e: RestClientException) {
             throw BusinessException(ErrorCode.INVALID_TOKEN, "Apple token 교환 실패: ${e.message}")
+        } catch (e: Exception) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Apple client secret 생성 실패: ${e.message}")
+        }
+    }
+
+    fun revokeRefreshToken(refreshToken: String) {
+        validateConfig()
+
+        val headers = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_FORM_URLENCODED
+        }
+
+        try {
+            val body = LinkedMultiValueMap<String, String>().apply {
+                add("client_id", clientId)
+                add("client_secret", createClientSecret())
+                add("token", refreshToken)
+                add("token_type_hint", "refresh_token")
+            }
+
+            restTemplate.postForEntity(
+                APPLE_REVOKE_URL,
+                HttpEntity(body, headers),
+                String::class.java
+            )
+        } catch (e: RestClientException) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Apple revoke 실패: ${e.message}")
         } catch (e: Exception) {
             throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Apple client secret 생성 실패: ${e.message}")
         }

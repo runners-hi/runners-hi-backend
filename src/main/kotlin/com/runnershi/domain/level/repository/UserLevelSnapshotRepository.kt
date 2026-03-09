@@ -10,4 +10,6 @@ interface UserLevelSnapshotRepository : JpaRepository<UserLevelSnapshot, Long> {
 
     // 특정 유저의 연도별 스냅샷 목록
     fun findByUserIdAndYearOrderByMonthAsc(userId: Long, year: Int): List<UserLevelSnapshot>
+
+    fun deleteAllByUserId(userId: Long)
 }
