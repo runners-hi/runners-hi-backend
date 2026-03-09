@@ -3,6 +3,7 @@ package com.runnershi.domain.user.controller
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.common.security.JwtTokenProvider
+import com.runnershi.domain.region.dto.DistrictResponse
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.entity.RegionType
 import com.runnershi.domain.user.dto.MyProfileResponse
@@ -133,6 +134,7 @@ class UserControllerTest : ControllerTest() {
                 nickname = "테스트러너",
                 profileImageUrl = null,
                 region = RegionResponse(1L, "서울특별시", RegionType.SPECIAL_CITY),
+                district = DistrictResponse(10L, 1L, "강남구"),
                 notificationEnabled = true
             )
             whenever(userService.getMyProfile(any())).thenReturn(profileResponse)
@@ -145,6 +147,7 @@ class UserControllerTest : ControllerTest() {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.nickname").value("테스트러너"))
                 .andExpect(jsonPath("$.data.region.name").value("서울특별시"))
+                .andExpect(jsonPath("$.data.district.name").value("강남구"))
         }
     }
 
@@ -159,7 +162,7 @@ class UserControllerTest : ControllerTest() {
                 patch("/api/users/region")
                     .header("Authorization", "Bearer $accessToken")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(toJson(mapOf("regionId" to 1)))
+                    .content(toJson(mapOf("regionId" to 1, "districtId" to 10)))
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))

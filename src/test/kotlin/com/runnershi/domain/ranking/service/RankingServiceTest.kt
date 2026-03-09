@@ -40,9 +40,16 @@ class RankingServiceTest {
         rankingService = RankingService(userRepository)
     }
 
-    private fun createUser(id: Long, nickname: String, regionId: Long? = 1L, totalDistance: Int = 0): User {
+    private fun createUser(
+        id: Long,
+        nickname: String,
+        regionId: Long? = 1L,
+        districtId: Long? = 10L,
+        totalDistance: Int = 0
+    ): User {
         val user = User(provider = Provider.KAKAO, providerId = "kakao-$id", nickname = nickname, status = UserStatus.ACTIVE)
         user.regionId = regionId
+        user.districtId = districtId
         user.totalDistance = totalDistance
         ReflectionTestUtils.setField(user, "id", id)
         return user
@@ -63,9 +70,9 @@ class RankingServiceTest {
             )
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(me))
-            whenever(userRepository.findRanking(eq(1L), eq(UserStatus.ACTIVE), any())).thenReturn(rankedUsers)
-            whenever(userRepository.countRank(1L, UserStatus.ACTIVE, 10000)).thenReturn(1L)
-            whenever(userRepository.countRank(1L, UserStatus.ACTIVE, 5000)).thenReturn(2L)
+            whenever(userRepository.findRanking(eq(10L), eq(UserStatus.ACTIVE), any())).thenReturn(rankedUsers)
+            whenever(userRepository.countRank(10L, UserStatus.ACTIVE, 10000)).thenReturn(1L)
+            whenever(userRepository.countRank(10L, UserStatus.ACTIVE, 5000)).thenReturn(2L)
 
             val response = rankingService.getRankings(1L, null, 20)
 
@@ -79,7 +86,7 @@ class RankingServiceTest {
         @Test
         @DisplayName("지역 미선택 시 예외 발생")
         fun regionNotSelected() {
-            val user = createUser(1L, "나", regionId = null)
+            val user = createUser(1L, "나", districtId = null)
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
 
             val exception = assertThrows<BusinessException> {
@@ -107,7 +114,7 @@ class RankingServiceTest {
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(me))
             whenever(userRepository.findById(10L)).thenReturn(Optional.of(cursorUser))
-            whenever(userRepository.findRankingWithCursor(eq(1L), eq(UserStatus.ACTIVE), eq(8000), eq(10L), any())).thenReturn(nextUsers)
+            whenever(userRepository.findRankingWithCursor(eq(10L), eq(UserStatus.ACTIVE), eq(8000), eq(10L), any())).thenReturn(nextUsers)
             whenever(userRepository.countRank(any(), any(), any())).thenReturn(3L)
 
             val response = rankingService.getRankings(1L, 10L, 2)
@@ -128,7 +135,7 @@ class RankingServiceTest {
             me.tier = Tier.SILVER
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(me))
-            whenever(userRepository.countRank(1L, UserStatus.ACTIVE, 5000)).thenReturn(3L)
+            whenever(userRepository.countRank(10L, UserStatus.ACTIVE, 5000)).thenReturn(3L)
 
             val response = rankingService.getMyRanking(1L)
 
@@ -141,7 +148,7 @@ class RankingServiceTest {
         @Test
         @DisplayName("지역 미선택 시 예외 발생")
         fun regionNotSelected() {
-            val user = createUser(1L, "나", regionId = null)
+            val user = createUser(1L, "나", districtId = null)
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
 
             assertThrows<BusinessException> {

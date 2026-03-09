@@ -28,6 +28,7 @@ class SecurityConfig(
                     .requestMatchers("/api/auth/logout").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/terms").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/regions/*/districts").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/app/version/check").permitAll()
                     .requestMatchers(
