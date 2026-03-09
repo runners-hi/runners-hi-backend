@@ -1,13 +1,19 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
 import com.runnershi.domain.mission.service.MissionChecker
+import com.runnershi.domain.mission.repository.UserMissionRepository
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
+import com.runnershi.domain.terms.repository.TermsAgreementRepository
+import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -16,8 +22,15 @@ import java.time.LocalDateTime
 class UserService(
     private val userRepository: UserRepository,
     private val regionRepository: RegionRepository,
-    private val missionChecker: MissionChecker
+    private val missionChecker: MissionChecker,
+    private val termsAgreementRepository: TermsAgreementRepository,
+    private val userMissionRepository: UserMissionRepository,
+    private val userLevelSnapshotRepository: UserLevelSnapshotRepository,
+    private val appleTokenClient: AppleTokenClient
 ) {
+    companion object {
+        private val log = LoggerFactory.getLogger(UserService::class.java)
+    }
 
     @Transactional
     fun updateNickname(userId: Long, nickname: String) {
@@ -71,9 +84,33 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
+        revokeAppleAccountIfPossible(user.provider, user.appleRefreshToken)
+
+        termsAgreementRepository.deleteAllByUserId(userId)
+        userMissionRepository.deleteAllByUserId(userId)
+        userLevelSnapshotRepository.deleteAllByUserId(userId)
+
+        user.providerId = "withdrawn_${user.id}"
+        user.email = null
+        user.nickname = "withdrawn_${user.id}"
+        user.profileImageUrl = null
+        user.regionId = null
+        user.notificationEnabled = false
+        user.fcmToken = null
+        user.appleRefreshToken = null
         user.status = UserStatus.WITHDRAWN
         user.deletedAt = LocalDateTime.now()
         user.refreshToken = null
         user.refreshTokenExpiresAt = null
+    }
+
+    private fun revokeAppleAccountIfPossible(provider: Provider, appleRefreshToken: String?) {
+        if (provider != Provider.APPLE) return
+        if (appleRefreshToken.isNullOrBlank()) {
+            log.warn("Apple withdrawal skipped revoke because refresh token is missing")
+            return
+        }
+
+        appleTokenClient.revokeRefreshToken(appleRefreshToken)
     }
 }

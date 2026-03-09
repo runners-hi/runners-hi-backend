@@ -1,11 +1,15 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
+import com.runnershi.domain.mission.repository.UserMissionRepository
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.entity.Region
 import com.runnershi.domain.region.entity.RegionType
 import com.runnershi.domain.region.repository.RegionRepository
+import com.runnershi.domain.terms.repository.TermsAgreementRepository
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
@@ -44,22 +48,46 @@ class UserServiceTest {
     @Mock
     lateinit var missionChecker: MissionChecker
 
+    @Mock
+    lateinit var termsAgreementRepository: TermsAgreementRepository
+
+    @Mock
+    lateinit var userMissionRepository: UserMissionRepository
+
+    @Mock
+    lateinit var userLevelSnapshotRepository: UserLevelSnapshotRepository
+
+    @Mock
+    lateinit var appleTokenClient: AppleTokenClient
+
     private lateinit var userService: UserService
 
     @BeforeEach
     fun setUp() {
-        userService = UserService(userRepository, regionRepository, missionChecker)
+        userService = UserService(
+            userRepository,
+            regionRepository,
+            missionChecker,
+            termsAgreementRepository,
+            userMissionRepository,
+            userLevelSnapshotRepository,
+            appleTokenClient
+        )
     }
 
     private fun createUser(
         id: Long = 1L,
         nickname: String = "테스트러너",
         regionId: Long? = null,
-        status: UserStatus = UserStatus.ACTIVE
+        status: UserStatus = UserStatus.ACTIVE,
+        provider: Provider = Provider.KAKAO,
+        providerId: String = "kakao-123",
+        email: String? = "test@example.com"
     ): User {
         val user = User(
-            provider = Provider.KAKAO,
-            providerId = "kakao-123",
+            provider = provider,
+            providerId = providerId,
+            email = email,
             nickname = nickname,
             status = status
         )
@@ -226,18 +254,45 @@ class UserServiceTest {
     inner class Withdraw {
 
         @Test
-        @DisplayName("탈퇴 성공 - 상태 변경 및 토큰 제거")
+        @DisplayName("탈퇴 성공 - 개인정보 마스킹 및 연관 데이터 삭제")
         fun success() {
             val user = createUser()
             user.refreshToken = "some-token"
+            user.refreshTokenExpiresAt = java.time.LocalDateTime.now().plusDays(7)
+            user.profileImageUrl = "https://example.com/profile.png"
+            user.fcmToken = "fcm-token"
+            user.notificationEnabled = true
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
 
             userService.withdraw(1L)
 
             assertEquals(UserStatus.WITHDRAWN, user.status)
             assertNotNull(user.deletedAt)
+            assertEquals("withdrawn_1", user.providerId)
+            assertEquals("withdrawn_1", user.nickname)
+            assertNull(user.email)
+            assertNull(user.profileImageUrl)
+            assertNull(user.regionId)
+            assertFalse(user.notificationEnabled)
+            assertNull(user.fcmToken)
+            verify(termsAgreementRepository).deleteAllByUserId(1L)
+            verify(userMissionRepository).deleteAllByUserId(1L)
+            verify(userLevelSnapshotRepository).deleteAllByUserId(1L)
             assertNull(user.refreshToken)
             assertNull(user.refreshTokenExpiresAt)
+        }
+
+        @Test
+        @DisplayName("Apple 유저 탈퇴 시 revoke 후 refresh token 제거")
+        fun appleUser_revokeToken() {
+            val user = createUser(provider = Provider.APPLE, providerId = "apple-123", email = "apple@example.com")
+            user.appleRefreshToken = "apple-refresh-token"
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.withdraw(1L)
+
+            verify(appleTokenClient).revokeRefreshToken("apple-refresh-token")
+            assertNull(user.appleRefreshToken)
         }
 
         @Test

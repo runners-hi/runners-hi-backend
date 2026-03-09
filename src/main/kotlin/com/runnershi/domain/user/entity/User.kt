@@ -28,9 +28,9 @@ class User(
     val provider: Provider,
 
     @Column(name = "provider_id", nullable = false)
-    val providerId: String,
+    var providerId: String,
 
-    val email: String? = null,
+    var email: String? = null,
 
     // 프로필
     @Column(nullable = false)
