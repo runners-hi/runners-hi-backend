@@ -5,6 +5,8 @@ import com.runnershi.domain.region.dto.RegionUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.dto.NicknameCheckResponse
 import com.runnershi.domain.user.dto.NicknameUpdateRequest
+import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
+import com.runnershi.domain.user.dto.ProfileImageUpdateRequest
 import com.runnershi.domain.user.service.UserService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -18,9 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-// TODO: 마이페이지 편집 API (화면 확정 후 구현)
-//       - PATCH /api/users/profile-image - 프로필 이미지 변경
-//       - PATCH /api/users/notification - 알림 설정 변경
 @Tag(name = "User", description = "유저 API")
 @RestController
 @RequestMapping("/api/users")
@@ -64,6 +63,26 @@ class UserController(
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
         userService.updateRegion(userId, request.regionId)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "알림 설정 변경", description = "푸시 알림 및 마케팅 알림 설정 변경")
+    @PatchMapping("/notification-settings")
+    fun updateNotificationSettings(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: NotificationSettingsUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateNotificationSettings(userId, request)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "프로필 이미지 변경", description = "GCS 업로드 후 최종 이미지 URL 저장")
+    @PatchMapping("/profile-image")
+    fun updateProfileImage(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: ProfileImageUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateProfileImage(userId, request.profileImageUrl)
         return ApiResponse.success(Unit)
     }
 

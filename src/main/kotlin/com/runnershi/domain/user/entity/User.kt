@@ -66,6 +66,9 @@ class User(
     @Column(nullable = false)
     var notificationEnabled: Boolean = true,
 
+    @Column(name = "marketing_notification_enabled", nullable = false)
+    var marketingNotificationEnabled: Boolean = false,
+
     var fcmToken: String? = null,
 
     // 토큰 (stateful 방식)

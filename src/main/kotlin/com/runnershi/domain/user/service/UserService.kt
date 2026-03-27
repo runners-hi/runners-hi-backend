@@ -7,6 +7,7 @@ import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
@@ -70,6 +71,23 @@ class UserService(
 
         // 미션 달성 체크 (REGION_SET)
         missionChecker.checkOnRegionSet(userId)
+    }
+
+    @Transactional
+    fun updateNotificationSettings(userId: Long, request: NotificationSettingsUpdateRequest) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        user.notificationEnabled = request.notificationEnabled
+        user.marketingNotificationEnabled = request.marketingNotificationEnabled
+    }
+
+    @Transactional
+    fun updateProfileImage(userId: Long, profileImageUrl: String) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        user.profileImageUrl = profileImageUrl
     }
 
     @Transactional
