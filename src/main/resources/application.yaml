@@ -29,6 +29,10 @@ oauth:
     key-id: ${APPLE_KEY_ID:}
     private-key: ${APPLE_PRIVATE_KEY:}
 
+gcs:
+  bucket-name: ${GCS_BUCKET_NAME:runners-hi-profile-images}
+  presigned-url-expiration-minutes: 15
+
 management:
   endpoints:
     web:
