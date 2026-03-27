@@ -5,6 +5,7 @@ import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.entity.Region
+import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
 import com.runnershi.domain.region.entity.RegionType
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.entity.Provider
@@ -226,6 +227,98 @@ class UserServiceTest {
                 userService.updateRegion(1L, 999L)
             }
             assertEquals(ErrorCode.RESOURCE_NOT_FOUND, exception.errorCode)
+        }
+    }
+
+    @Nested
+    @DisplayName("FCM 토큰 등록/갱신")
+    inner class UpdateFcmToken {
+
+        @Test
+        @DisplayName("FCM 토큰 변경 성공")
+        fun success() {
+            val user = createUser()
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.updateFcmToken(1L, "new-token")
+
+            assertEquals("new-token", user.fcmToken)
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 - 예외 발생")
+        fun userNotFound() {
+            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
+
+            val exception = assertThrows<BusinessException> {
+                userService.updateFcmToken(999L, "new-token")
+            }
+            assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        }
+    }
+
+    @Nested
+    @DisplayName("알림 설정 변경")
+    inner class UpdateNotificationSettings {
+
+        @Test
+        @DisplayName("알림 설정 변경 성공")
+        fun success() {
+            val user = createUser()
+            user.notificationEnabled = true
+            user.marketingNotificationEnabled = false
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            val request = NotificationSettingsUpdateRequest(
+                notificationEnabled = false,
+                marketingNotificationEnabled = true
+            )
+            userService.updateNotificationSettings(1L, request)
+
+            assertFalse(user.notificationEnabled)
+            assertTrue(user.marketingNotificationEnabled)
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 - 예외 발생")
+        fun userNotFound() {
+            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
+
+            val request = NotificationSettingsUpdateRequest(
+                notificationEnabled = false,
+                marketingNotificationEnabled = true
+            )
+            val exception = assertThrows<BusinessException> {
+                userService.updateNotificationSettings(999L, request)
+            }
+            assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
+        }
+    }
+
+    @Nested
+    @DisplayName("프로필 이미지 변경")
+    inner class UpdateProfileImage {
+
+        @Test
+        @DisplayName("프로필 이미지 URL 저장 성공")
+        fun success() {
+            val user = createUser()
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            userService.updateProfileImage(1L, "https://storage.googleapis.com/bucket/image.jpg")
+
+            assertEquals("https://storage.googleapis.com/bucket/image.jpg", user.profileImageUrl)
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 - 예외 발생")
+        fun userNotFound() {
+            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
+
+            val exception = assertThrows<BusinessException> {
+                userService.updateProfileImage(999L, "https://storage.googleapis.com/bucket/image.jpg")
+            }
+            assertEquals(ErrorCode.USER_NOT_FOUND, exception.errorCode)
         }
     }
 

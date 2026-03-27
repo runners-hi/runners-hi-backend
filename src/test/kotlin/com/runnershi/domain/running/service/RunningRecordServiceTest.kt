@@ -8,6 +8,7 @@ import com.runnershi.domain.running.dto.RunningRecordCreateRequest
 import com.runnershi.domain.running.entity.RunningRecord
 import com.runnershi.domain.running.repository.RunningRecordRepository
 import com.runnershi.domain.user.entity.Provider
+import com.runnershi.domain.user.entity.Tier
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.repository.UserRepository
 import org.junit.jupiter.api.BeforeEach
@@ -95,10 +96,15 @@ class RunningRecordServiceTest {
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
             whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+            whenever(levelService.calculateExperience(any(), any())).thenReturn(75)
+            whenever(levelService.calculateLevelAndTier(any())).thenReturn(Pair(2, Tier.BRONZE))
 
             val response = service.createRunningRecord(1L, request)
 
             assertEquals(15000, user.totalDistance) // 10000 + 5000
+            assertEquals(75, user.experience)
+            assertEquals(2, user.level)
+            assertEquals(Tier.BRONZE, user.tier)
             verify(missionChecker).checkOnRunningRecordCreated(any(), any())
             assertEquals(savedRecord.id, response.id)
         }
@@ -112,6 +118,8 @@ class RunningRecordServiceTest {
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
             whenever(runningRecordRepository.save(any<RunningRecord>())).thenAnswer { it.arguments[0] }
+            whenever(levelService.calculateExperience(any(), any())).thenReturn(50)
+            whenever(levelService.calculateLevelAndTier(any())).thenReturn(Pair(1, Tier.BRONZE))
 
             val response = service.createRunningRecord(1L, request)
 
@@ -126,6 +134,64 @@ class RunningRecordServiceTest {
             assertThrows<BusinessException> {
                 service.createRunningRecord(999L, createRequest())
             }.also { assertEquals(ErrorCode.USER_NOT_FOUND, it.errorCode) }
+        }
+
+        @Test
+        @DisplayName("종료 시간이 시작 시간 이전이면 INVALID_RUNNING_DATA 예외")
+        fun endedAtBeforeStartedAt() {
+            val user = createUser()
+            val now = LocalDateTime.of(2025, 1, 6, 7, 0)
+            val request = RunningRecordCreateRequest(
+                distance = 5000,
+                duration = 1800,
+                startedAt = now,
+                endedAt = now.minusMinutes(1)
+            )
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            assertThrows<BusinessException> {
+                service.createRunningRecord(1L, request)
+            }.also { assertEquals(ErrorCode.INVALID_RUNNING_DATA, it.errorCode) }
+        }
+
+        @Test
+        @DisplayName("비정상 pace(1초/km 미만) - INVALID_RUNNING_DATA 예외")
+        fun abnormalPace() {
+            val user = createUser()
+            // distance=1000000m(1000km), duration=100초 → pace = 100/1000 = 0
+            val now = LocalDateTime.of(2025, 1, 6, 7, 0)
+            val request = RunningRecordCreateRequest(
+                distance = 1000000,
+                duration = 100,
+                startedAt = now,
+                endedAt = now.plusSeconds(100)
+            )
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            assertThrows<BusinessException> {
+                service.createRunningRecord(1L, request)
+            }.also { assertEquals(ErrorCode.INVALID_RUNNING_DATA, it.errorCode) }
+        }
+
+        @Test
+        @DisplayName("경험치/레벨/티어 갱신 확인")
+        fun experienceLevelTierUpdate() {
+            val user = createUser(totalDistance = 0)
+            val request = createRequest(distance = 5000, duration = 1800)
+            val savedRecord = createRecord()
+
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            whenever(runningRecordRepository.save(any<RunningRecord>())).thenReturn(savedRecord)
+            whenever(levelService.calculateExperience(any(), any())).thenReturn(100)
+            whenever(levelService.calculateLevelAndTier(any())).thenReturn(Pair(3, Tier.SILVER))
+
+            service.createRunningRecord(1L, request)
+
+            assertEquals(100, user.experience)
+            assertEquals(3, user.level)
+            assertEquals(Tier.SILVER, user.tier)
         }
     }
 

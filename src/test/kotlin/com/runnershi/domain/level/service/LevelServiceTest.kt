@@ -151,4 +151,44 @@ class LevelServiceTest {
             assertEquals(0, levelService.calculateProgress(50))
         }
     }
+
+    @Nested
+    @DisplayName("calculateExperience")
+    inner class CalculateExperience {
+
+        @Test
+        @DisplayName("5km, 페이스 360초/km(6분) → paceBonus 1.5 → 75XP")
+        fun fastPace() {
+            // 5000m / 1000 = 5km, 5 * 10 * 1.5 = 75
+            assertEquals(75, levelService.calculateExperience(5000, 360))
+        }
+
+        @Test
+        @DisplayName("10km, 페이스 480초/km(8분) → paceBonus 1.2 → 120XP")
+        fun normalPace() {
+            // 10000m / 1000 = 10km, 10 * 10 * 1.2 = 120
+            assertEquals(120, levelService.calculateExperience(10000, 480))
+        }
+
+        @Test
+        @DisplayName("10km, 페이스 600초/km(10분) → paceBonus 1.0 → 100XP")
+        fun slowPace() {
+            // 10000m / 1000 = 10km, 10 * 10 * 1.0 = 100
+            assertEquals(100, levelService.calculateExperience(10000, 600))
+        }
+
+        @Test
+        @DisplayName("100km, 페이스 300초/km → 최대 500XP 상한 적용")
+        fun cappedAtMax() {
+            // 100000m / 1000 = 100km, 100 * 10 * 1.5 = 1500 → 500으로 상한
+            assertEquals(500, levelService.calculateExperience(100000, 300))
+        }
+
+        @Test
+        @DisplayName("500m, 페이스 360초/km → 소수점 절삭으로 7XP")
+        fun shortDistanceTruncated() {
+            // 500m / 1000 = 0.5km, 0.5 * 10 * 1.5 = 7.5 → toInt() = 7
+            assertEquals(7, levelService.calculateExperience(500, 360))
+        }
+    }
 }

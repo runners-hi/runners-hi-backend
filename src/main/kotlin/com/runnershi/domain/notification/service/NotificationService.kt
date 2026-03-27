@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val userRepository: UserRepository,
-    private val fcmService: FcmService
+    private val fcmService: FcmService? = null  // 테스트 환경에서는 null (FcmService는 !test 프로필)
 ) {
 
     // 미션 달성 알림 발송 (FCM Push + In-App)
@@ -30,9 +30,9 @@ class NotificationService(
             )
         )
 
-        // FCM Push (알림 허용 + fcmToken 있는 경우만)
+        // FCM Push (알림 허용 + fcmToken 있는 경우만, FcmService 활성 시)
         val user = userRepository.findById(userId).orElse(null) ?: return
-        if (user.notificationEnabled && user.fcmToken != null) {
+        if (fcmService != null && user.notificationEnabled && user.fcmToken != null) {
             fcmService.sendPush(user.fcmToken!!, title, body)
         }
     }

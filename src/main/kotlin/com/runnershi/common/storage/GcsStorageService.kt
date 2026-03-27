@@ -4,6 +4,7 @@ import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.HttpMethod
 import com.google.cloud.storage.Storage
 import com.runnershi.common.config.GcsProperties
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit
 //   3. 클라이언트 → Presigned URL로 직접 PUT 업로드 (서버 미경유)
 //   4. 클라이언트 → PATCH /api/users/profile-image { profileImageUrl: objectUrl }
 @Service
+@Profile("!test")
 class GcsStorageService(
     private val storage: Storage,
     private val gcsProperties: GcsProperties

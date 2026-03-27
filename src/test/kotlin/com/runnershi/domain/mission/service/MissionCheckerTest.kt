@@ -12,6 +12,7 @@ import com.runnershi.domain.mission.repository.UserMissionRepository
 import com.runnershi.domain.running.entity.RunningRecord
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
+import com.runnershi.domain.notification.service.NotificationService
 import com.runnershi.domain.user.repository.UserRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -22,6 +23,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -40,12 +42,13 @@ class MissionCheckerTest {
     @Mock lateinit var missionRepository: MissionRepository
     @Mock lateinit var userMissionRepository: UserMissionRepository
     @Mock lateinit var userRepository: UserRepository
+    @Mock lateinit var notificationService: NotificationService
 
     private lateinit var missionChecker: MissionChecker
 
     @BeforeEach
     fun setUp() {
-        missionChecker = MissionChecker(missionGroupRepository, missionRepository, userMissionRepository, userRepository)
+        missionChecker = MissionChecker(missionGroupRepository, missionRepository, userMissionRepository, userRepository, notificationService)
     }
 
     private fun createMissionGroup(id: Long, type: MissionGroupType): MissionGroup {
@@ -108,6 +111,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -120,6 +124,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -139,6 +144,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -151,13 +157,16 @@ class MissionCheckerTest {
             user.totalDistance = 5000
             ReflectionTestUtils.setField(user, "id", 1L)
 
+            val userMission = UserMission(userId = 1L, missionId = 1L)
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
             whenever(userMissionRepository.findByUserIdAndMissionId(1L, 1L)).thenReturn(null)
+            whenever(userMissionRepository.save(any<UserMission>())).thenReturn(userMission)
 
             val record = createRunningRecord(distance = 3000, pace = 360)
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -171,6 +180,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -183,6 +193,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -197,6 +208,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -210,6 +222,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -225,6 +238,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -239,6 +253,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -252,6 +267,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -269,6 +285,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
 
         @Test
@@ -280,6 +297,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRunningRecordCreated(1L, record)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
     }
 
@@ -297,6 +315,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRegionSet(1L)
 
             verify(userMissionRepository).save(any<UserMission>())
+            verify(notificationService).sendMissionAchievedNotification(eq(1L), any())
         }
 
         @Test
@@ -308,6 +327,7 @@ class MissionCheckerTest {
             missionChecker.checkOnRegionSet(1L)
 
             verify(userMissionRepository, never()).save(any<UserMission>())
+            verify(notificationService, never()).sendMissionAchievedNotification(any(), any())
         }
     }
 }

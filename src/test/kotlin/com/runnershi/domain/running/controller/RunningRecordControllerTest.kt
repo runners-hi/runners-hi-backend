@@ -43,7 +43,12 @@ class RunningRecordControllerTest : ControllerTest() {
         calories = 300,
         startedAt = LocalDateTime.of(2025, 1, 6, 7, 0),
         endedAt = LocalDateTime.of(2025, 1, 6, 7, 30),
-        memo = null
+        memo = null,
+        heartRateAvg = null,
+        heartRateMax = null,
+        elevationGain = null,
+        elevationLoss = null,
+        runningType = null
     )
 
     @BeforeEach

@@ -99,12 +99,11 @@ class MissionChecker(
         userMission.currentValue = user.totalDistance
 
         if (user.totalDistance >= requiredDistance) {
-            userMission.status = MissionStatus.ACHIEVED
-            userMission.achievedAt = LocalDateTime.now()
+            achieveMission(userId, mission) // 알림 발송 포함
         } else {
             userMission.status = MissionStatus.IN_PROGRESS
+            userMissionRepository.save(userMission)
         }
-        userMissionRepository.save(userMission)
     }
 
     // 페이스 체크 (낮을수록 빠름, conditionValue 이하면 달성)

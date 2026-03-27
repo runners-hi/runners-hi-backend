@@ -3,6 +3,7 @@ package com.runnershi.common.storage
 import com.runnershi.common.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.context.annotation.Profile
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Storage", description = "파일 업로드 API")
 @RestController
 @RequestMapping("/api/storage")
+@Profile("!test")
 class StorageController(
     private val gcsStorageService: GcsStorageService
 ) {

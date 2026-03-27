@@ -133,7 +133,8 @@ class UserControllerTest : ControllerTest() {
                 nickname = "테스트러너",
                 profileImageUrl = null,
                 region = RegionResponse(1L, "서울특별시", RegionType.SPECIAL_CITY),
-                notificationEnabled = true
+                notificationEnabled = true,
+                marketingNotificationEnabled = false
             )
             whenever(userService.getMyProfile(any())).thenReturn(profileResponse)
 
@@ -179,6 +180,102 @@ class UserControllerTest : ControllerTest() {
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/users/fcm-token")
+    inner class UpdateFcmToken {
+
+        @Test
+        @DisplayName("FCM 토큰 등록 성공")
+        fun success() {
+            mockMvc.perform(
+                patch("/api/users/fcm-token")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("fcmToken" to "test-fcm-token-123")))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+        }
+
+        @Test
+        @DisplayName("빈 FCM 토큰이면 400 반환")
+        fun blankFcmToken_returns400() {
+            mockMvc.perform(
+                patch("/api/users/fcm-token")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("fcmToken" to "")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/users/notification-settings")
+    inner class UpdateNotificationSettings {
+
+        @Test
+        @DisplayName("알림 설정 변경 성공")
+        fun success() {
+            mockMvc.perform(
+                patch("/api/users/notification-settings")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf(
+                        "notificationEnabled" to true,
+                        "marketingNotificationEnabled" to false
+                    )))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+        }
+
+        @Test
+        @DisplayName("notificationEnabled 누락 시 400")
+        fun missingFields_returns400() {
+            mockMvc.perform(
+                patch("/api/users/notification-settings")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(emptyMap<String, Any>()))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/users/profile-image")
+    inner class UpdateProfileImage {
+
+        @Test
+        @DisplayName("프로필 이미지 URL 저장 성공")
+        fun success() {
+            mockMvc.perform(
+                patch("/api/users/profile-image")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("profileImageUrl" to "https://storage.googleapis.com/bucket/image.jpg")))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.success").value(true))
+        }
+
+        @Test
+        @DisplayName("빈 URL이면 400")
+        fun blankUrl_returns400() {
+            mockMvc.perform(
+                patch("/api/users/profile-image")
+                    .header("Authorization", "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(mapOf("profileImageUrl" to "")))
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.success").value(false))
         }
     }
 
