@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query
 interface UserRepository : JpaRepository<User, Long> {
     fun findByProviderAndProviderId(provider: Provider, providerId: String): User?
     fun existsByNickname(nickname: String): Boolean
+    fun findAllByStatus(status: UserStatus): List<User>
 
     // === 랭킹 쿼리 ===
     // 정렬: totalDistance DESC, id ASC (동점 시 가입순)
