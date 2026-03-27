@@ -3,6 +3,8 @@ package com.runnershi.domain.running.entity
 import com.runnershi.common.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Index
 import jakarta.persistence.Table
 import java.time.LocalDate
@@ -13,20 +15,17 @@ import java.time.LocalDateTime
 // - duration: 초 (Int)
 // - pace: 초/km (Int) - 서버에서 distance/duration으로 계산
 // - runningDate: startedAt에서 서버가 추출
+// - heartRateAvg/Max: bpm (선택)
+// - elevationGain/Loss: m (선택)
+// - runningType: 러닝 유형 (선택)
 
 // === 정책 ===
 // - pace는 클라이언트에서 받지 않고 서버에서 계산
 // - runningDate는 startedAt 기준으로 서버에서 설정
 // - 유저 탈퇴(soft delete) 시 러닝 기록은 유지
 // - 기록 생성 시 User.totalDistance 동기화 필요
-
-// TODO: 추가 고려 필드
-// 1. 경로 데이터 - GPS 좌표 (별도 테이블 or JSON) - 위치사업자 등록 여부 확인 필요
-// 2. 심박수 - 평균/최대 심박수
-// 3. 케이던스 - 분당 걸음 수
-// 4. 고도 - 상승/하강 고도
-// 5. 날씨 - 기온, 날씨 상태
-// 6. 러닝 타입 - 일반/인터벌/레이스 등
+// - GPS 경로: 위치사업자 등록 필요로 제외
+// - 케이던스/날씨: MVP 범위 외 제외
 
 @Entity
 @Table(
@@ -64,5 +63,24 @@ class RunningRecord(
     @Column(name = "ended_at", nullable = false)
     val endedAt: LocalDateTime,
 
-    val memo: String? = null
+    val memo: String? = null,
+
+    // 심박수 (bpm, 선택)
+    @Column(name = "heart_rate_avg")
+    val heartRateAvg: Int? = null,
+
+    @Column(name = "heart_rate_max")
+    val heartRateMax: Int? = null,
+
+    // 고도 (m, 선택)
+    @Column(name = "elevation_gain")
+    val elevationGain: Int? = null,
+
+    @Column(name = "elevation_loss")
+    val elevationLoss: Int? = null,
+
+    // 러닝 유형 (선택)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "running_type", length = 20)
+    val runningType: RunningType? = null
 ) : BaseEntity()

@@ -65,7 +65,12 @@ class RunningRecordService(
                 calories = request.calories,
                 startedAt = request.startedAt,
                 endedAt = request.endedAt,
-                memo = request.memo
+                memo = request.memo,
+                heartRateAvg = request.heartRateAvg,
+                heartRateMax = request.heartRateMax,
+                elevationGain = request.elevationGain,
+                elevationLoss = request.elevationLoss,
+                runningType = request.runningType
             )
         )
 

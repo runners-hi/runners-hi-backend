@@ -1,13 +1,15 @@
 package com.runnershi.domain.running.dto
 
 import com.runnershi.domain.running.entity.RunningRecord
+import com.runnershi.domain.running.entity.RunningType
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
 import java.time.LocalDateTime
 
 // === 러닝 기록 저장 ===
-// - 클라이언트: distance, duration, calories, startedAt, endedAt, memo 전달
+// - 클라이언트: distance, duration, calories, startedAt, endedAt, memo,
+//               heartRateAvg, heartRateMax, elevationGain, elevationLoss, runningType 전달
 // - 서버 계산: pace (duration / distance(km) → 초/km), runningDate (startedAt 기준)
 // - 저장 후: User.totalDistance 갱신, 경험치/레벨/티어 재계산
 data class RunningRecordCreateRequest(
@@ -25,7 +27,13 @@ data class RunningRecordCreateRequest(
     @field:NotNull(message = "종료 시간은 필수입니다")
     val endedAt: LocalDateTime,
 
-    val memo: String? = null
+    val memo: String? = null,
+
+    val heartRateAvg: Int? = null,
+    val heartRateMax: Int? = null,
+    val elevationGain: Int? = null,
+    val elevationLoss: Int? = null,
+    val runningType: RunningType? = null
 )
 
 data class RunningRecordResponse(
@@ -37,7 +45,12 @@ data class RunningRecordResponse(
     val calories: Int?,
     val startedAt: LocalDateTime,
     val endedAt: LocalDateTime,
-    val memo: String?
+    val memo: String?,
+    val heartRateAvg: Int?,
+    val heartRateMax: Int?,
+    val elevationGain: Int?,
+    val elevationLoss: Int?,
+    val runningType: RunningType?
 ) {
     companion object {
         fun from(record: RunningRecord) = RunningRecordResponse(
@@ -49,7 +62,12 @@ data class RunningRecordResponse(
             calories = record.calories,
             startedAt = record.startedAt,
             endedAt = record.endedAt,
-            memo = record.memo
+            memo = record.memo,
+            heartRateAvg = record.heartRateAvg,
+            heartRateMax = record.heartRateMax,
+            elevationGain = record.elevationGain,
+            elevationLoss = record.elevationLoss,
+            runningType = record.runningType
         )
     }
 }
