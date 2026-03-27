@@ -20,11 +20,27 @@ class LevelService(
     // === 정책 ===
     // - 경험치(experience) → level_config 테이블에서 레벨 결정
     // - 레벨 → 아래 tierForLevel()로 티어 결정
-    // - 경험치 획득 공식은 미정 (TODO: 기획 확정 후 구현)
-    // - 연초 초기화 정책 미정 (TODO: 기획/디자인 논의 후 구현)
+    // - 경험치 획득 공식: XP = (거리(km) × 10 × 페이스보너스).coerceAtMost(500)
+    //   페이스보너스: ≤360초/km(6분/km) → 1.5, ≤480초/km(8분/km) → 1.2, 그 외 → 1.0
+    // - 연초 초기화 정책: 매년 1월 1일 경험치 리셋, 레벨/티어 유지 (YearlyResetScheduler)
 
     companion object {
         private const val MAX_LEVEL = 100
+        private const val XP_PER_KM = 10
+        private const val MAX_XP_PER_RUN = 500
+        private const val FAST_PACE_THRESHOLD = 360  // 6분/km (초)
+        private const val NORMAL_PACE_THRESHOLD = 480 // 8분/km (초)
+    }
+
+    // 경험치 획득 공식: XP = 거리(km) × 10 × 페이스보너스, 최대 500XP/회
+    fun calculateExperience(distanceMeters: Int, pace: Int): Int {
+        val distanceKm = distanceMeters / 1000.0
+        val paceBonus = when {
+            pace <= FAST_PACE_THRESHOLD -> 1.5
+            pace <= NORMAL_PACE_THRESHOLD -> 1.2
+            else -> 1.0
+        }
+        return (distanceKm * XP_PER_KM * paceBonus).toInt().coerceAtMost(MAX_XP_PER_RUN)
     }
 
     fun tierForLevel(level: Int): Tier = when (level) {

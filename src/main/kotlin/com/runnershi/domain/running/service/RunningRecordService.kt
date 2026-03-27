@@ -28,29 +28,32 @@ class RunningRecordService(
 ) {
 
     // === 러닝 기록 저장 ===
-    // 1. pace 서버 계산, runningDate는 startedAt 기준 설정
-    // 2. 기록 저장
-    // 3. User.totalDistance 갱신
-    // 4. 경험치 추가 → 레벨/티어 재계산
+    // 1. 입력값 검증 (startedAt < endedAt, 비정상 pace 필터링)
+    // 2. pace 서버 계산, runningDate는 startedAt 기준 설정
+    // 3. 기록 저장
+    // 4. User.totalDistance 갱신
+    // 5. 경험치 추가 → 레벨/티어 재계산
     //
-    // TODO: 러닝 기록 입력 방식 미확정 (기획 논의 필요)
-    //   방식 1) 앱 내 "시작/종료" 버튼으로 실시간 트래킹
-    //     - startedAt/endedAt은 앱이 자동 설정
-    //     - 서버에 러닝 세션 관리가 필요할 수 있음 (시작 API → 종료 API)
-    //     - GPS 경로 데이터 전송 고려
-    //   방식 2) 외부 앱 연동 or 수동 입력 후 일괄 저장
-    //     - 현재 POST API 구조 그대로 사용 가능
-    //     - 데이터 검증 강화 필요 (비정상 값 필터링)
-    //   → 현재 API는 어떤 방식이든 호환되는 구조 (데이터를 받아서 저장)
-    //
-    // TODO: 경험치 획득 공식 미정 - 기획 확정 후 calculateExperience() 구현
+    // 입력 방식 확정 (BE-093): 방식 2 채택
+    //   - 외부 앱 연동 or 수동 입력 후 일괄 저장 (현재 POST API 구조 유지)
+    //   - 비정상 값 필터링으로 신뢰성 확보
     @Transactional
     fun createRunningRecord(userId: Long, request: RunningRecordCreateRequest): RunningRecordResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
+        // 입력 검증: 종료 시간이 시작 시간보다 늦어야 함
+        if (!request.endedAt.isAfter(request.startedAt)) {
+            throw BusinessException(ErrorCode.INVALID_RUNNING_DATA)
+        }
+
         // pace 계산: 총 시간(초) / 총 거리(km) → 초/km
         val pace = (request.duration / (request.distance / 1000.0)).toInt()
+
+        // 비정상 pace 검증: 1초/km 미만(비현실적 속도) or 3600초/km 초과(1시간/km)
+        if (pace < 1 || pace > 3600) {
+            throw BusinessException(ErrorCode.INVALID_RUNNING_DATA)
+        }
 
         val record = runningRecordRepository.save(
             RunningRecord(
@@ -69,13 +72,12 @@ class RunningRecordService(
         // User.totalDistance 동기화
         user.totalDistance += request.distance
 
-        // TODO: 경험치 획득 공식 미정 (거리/속도/시간 → XP 변환)
-        //       기획 확정 후 아래 주석 해제 및 calculateExperience() 구현
-        // val earnedXp = calculateExperience(request.distance, request.duration, pace)
-        // user.experience += earnedXp
-        // val (newLevel, newTier) = levelService.calculateLevelAndTier(user.experience)
-        // user.level = newLevel
-        // user.tier = newTier
+        // 경험치 획득 및 레벨/티어 갱신
+        val earnedXp = levelService.calculateExperience(request.distance, pace)
+        user.experience += earnedXp
+        val (newLevel, newTier) = levelService.calculateLevelAndTier(user.experience)
+        user.level = newLevel
+        user.tier = newTier
 
         // 미션 달성 체크
         missionChecker.checkOnRunningRecordCreated(userId, record)
