@@ -5,6 +5,7 @@ import com.runnershi.domain.region.dto.RegionUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
 import com.runnershi.domain.user.dto.NicknameCheckResponse
 import com.runnershi.domain.user.dto.NicknameUpdateRequest
+import com.runnershi.domain.user.dto.FcmTokenUpdateRequest
 import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
 import com.runnershi.domain.user.dto.ProfileImageUpdateRequest
 import com.runnershi.domain.user.service.UserService
@@ -63,6 +64,16 @@ class UserController(
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
         userService.updateRegion(userId, request.regionId)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "FCM 토큰 등록/갱신", description = "앱 실행 시 FCM 토큰 서버 저장")
+    @PatchMapping("/fcm-token")
+    fun updateFcmToken(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: FcmTokenUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateFcmToken(userId, request.fcmToken)
         return ApiResponse.success(Unit)
     }
 

@@ -33,6 +33,9 @@ gcs:
   bucket-name: ${GCS_BUCKET_NAME:runners-hi-profile-images}
   presigned-url-expiration-minutes: 15
 
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
 management:
   endpoints:
     web:

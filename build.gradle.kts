@@ -45,6 +45,9 @@ dependencies {
     // GCS (프로필 이미지 Presigned URL)
     implementation("com.google.cloud:google-cloud-storage:2.50.0")
 
+    // Firebase Admin SDK (FCM 푸시 알림)
+    implementation("com.google.firebase:firebase-admin:9.4.3")
+
     // Apple OAuth (JWT/JWKS 처리)
     implementation("com.nimbusds:nimbus-jose-jwt:10.3")
 

@@ -25,6 +25,12 @@ data class ProfileImageUpdateRequest(
     val profileImageUrl: String
 )
 
+// BE-082: FCM 토큰 등록/갱신
+data class FcmTokenUpdateRequest(
+    @field:NotBlank(message = "FCM 토큰은 필수입니다")
+    val fcmToken: String
+)
+
 data class NicknameCheckResponse(
     val available: Boolean
 )

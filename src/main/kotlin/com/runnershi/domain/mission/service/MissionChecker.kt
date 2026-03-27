@@ -8,8 +8,10 @@ import com.runnershi.domain.mission.entity.UserMission
 import com.runnershi.domain.mission.repository.MissionGroupRepository
 import com.runnershi.domain.mission.repository.MissionRepository
 import com.runnershi.domain.mission.repository.UserMissionRepository
+import com.runnershi.domain.notification.service.NotificationService
 import com.runnershi.domain.running.entity.RunningRecord
 import com.runnershi.domain.user.repository.UserRepository
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -19,13 +21,13 @@ import java.time.LocalDateTime
 // - 러닝 기록 저장 시: SINGLE_DISTANCE, CUMULATIVE_DISTANCE, PACE, RUN_ON_DATE, RUN_IN_PERIOD, FIRST_RUN 체크
 // - 지역 설정 시: REGION_SET 체크
 // - 이미 달성한 미션은 스킵, 활성 그룹(WELCOME + 기간 내 EVENT)의 미션만 체크
-// TODO: 미션 달성 시 알림 발송 (알림 시스템 구현 후)
 @Service
 class MissionChecker(
     private val missionGroupRepository: MissionGroupRepository,
     private val missionRepository: MissionRepository,
     private val userMissionRepository: UserMissionRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @Lazy private val notificationService: NotificationService
 ) {
 
     // 러닝 기록 저장 시 호출
@@ -138,6 +140,9 @@ class MissionChecker(
         userMission.achievedAt = LocalDateTime.now()
         mission.conditionValue?.let { userMission.currentValue = it }
         userMissionRepository.save(userMission)
+
+        // 미션 달성 알림 발송
+        notificationService.sendMissionAchievedNotification(userId, mission.name)
     }
 
     private fun getOrCreateUserMission(userId: Long, missionId: Long): UserMission {

@@ -7,6 +7,7 @@ import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.FcmTokenUpdateRequest
 import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.UserStatus
@@ -80,6 +81,13 @@ class UserService(
 
         user.notificationEnabled = request.notificationEnabled
         user.marketingNotificationEnabled = request.marketingNotificationEnabled
+    }
+
+    @Transactional
+    fun updateFcmToken(userId: Long, fcmToken: String) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        user.fcmToken = fcmToken
     }
 
     @Transactional
