@@ -15,6 +15,7 @@ import com.runnershi.domain.region.dto.DistrictResponse
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.DistrictRepository
 import com.runnershi.domain.region.repository.RegionRepository
+import com.runnershi.domain.running.repository.RunningRecordRepository
 import com.runnershi.domain.terms.repository.TermsAgreementRepository
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.dto.MyProfileResponse
@@ -39,7 +40,8 @@ class UserService(
     private val storageService: StorageService,
     private val profileImageUrlResolver: ProfileImageUrlResolver,
     private val notificationRepository: NotificationRepository,
-    private val feedbackRepository: FeedbackRepository
+    private val feedbackRepository: FeedbackRepository,
+    private val runningRecordRepository: RunningRecordRepository
 ) {
     companion object {
         private val log = LoggerFactory.getLogger(UserService::class.java)
@@ -179,6 +181,8 @@ class UserService(
         userLevelSnapshotRepository.deleteAllByUserId(userId)
         notificationRepository.deleteAllByUserId(userId)
         feedbackRepository.deleteAllByUserId(userId)
+        // 건강 데이터는 탈퇴하면 남기지 않는다 (약관의 보유 기간)
+        runningRecordRepository.deleteAllByUserId(userId)
 
         user.providerId = "withdrawn_${user.id}"
         user.email = null
