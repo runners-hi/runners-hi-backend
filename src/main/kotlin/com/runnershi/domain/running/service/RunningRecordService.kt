@@ -50,16 +50,7 @@ class RunningRecordService(
     // 3. User.totalDistance 갱신
     // 4. 경험치 추가 → 레벨/티어 재계산
     //
-    // TODO: 러닝 기록 입력 방식 미확정 (기획 논의 필요)
-    //   방식 1) 앱 내 "시작/종료" 버튼으로 실시간 트래킹
-    //     - startedAt/endedAt은 앱이 자동 설정
-    //     - 서버에 러닝 세션 관리가 필요할 수 있음 (시작 API → 종료 API)
-    //     - GPS 경로 데이터 전송 고려
-    //   방식 2) 외부 앱 연동 or 수동 입력 후 일괄 저장
-    //     - 현재 POST API 구조 그대로 사용 가능
-    //     - 데이터 검증 강화 필요 (비정상 값 필터링)
-    //   → 현재 API는 어떤 방식이든 호환되는 구조 (데이터를 받아서 저장)
-    //
+    // 입력 방식: 앱이 건강 데이터나 수동 입력으로 받은 기록을 이 API로 일괄 저장한다 (BE-093)
     @Transactional
     fun createRunningRecord(userId: Long, request: RunningRecordCreateRequest): RunningRecordResponse {
         val user = userRepository.findById(userId)

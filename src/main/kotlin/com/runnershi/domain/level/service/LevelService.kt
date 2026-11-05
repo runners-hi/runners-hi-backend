@@ -20,8 +20,8 @@ class LevelService(
     // === 정책 ===
     // - 경험치(experience) → level_config 테이블에서 레벨 결정
     // - 레벨 → 아래 tierForLevel()로 티어 결정
-    // - 경험치 획득 공식은 미정 (TODO: 기획 확정 후 구현)
-    // - 연초 초기화 정책 미정 (TODO: 기획/디자인 논의 후 구현)
+    // - 경험치 획득 공식은 RunningRecordService 참고 (1km당 100XP, 수동 입력 0.7배, 하루 상한 1200XP)
+    // - 연초 초기화는 하지 않는다. 레벨이 누적 경험치에서 계산되므로 초기화하면 레벨도 떨어진다 (BE-090)
 
     companion object {
         private const val MAX_LEVEL = 100

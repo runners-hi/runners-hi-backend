@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-// TODO: 마이페이지 편집 API (화면 확정 후 구현)
 @Tag(name = "User", description = "유저 API")
 @RestController
 @RequestMapping("/api/users")
