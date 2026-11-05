@@ -5,6 +5,11 @@ runnershi-api.oguriworks.com {
 		rewrite * /privacy.html
 		file_server
 	}
+	handle /delete-account {
+		root * /srv/runnershi/pages
+		rewrite * /delete-account.html
+		file_server
+	}
 	handle /terms {
 		root * /srv/runnershi/pages
 		rewrite * /terms.html
