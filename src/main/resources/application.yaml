@@ -32,10 +32,12 @@ oauth:
     key-id: ${APPLE_KEY_ID:}
     private-key: ${APPLE_PRIVATE_KEY:}
 
-gcs:
-  bucket-name: ${GCS_BUCKET_NAME:runners-hi-profile}
-  project-id: ${GCS_PROJECT_ID:runners-hi}
-  public-base-url: ${GCS_PUBLIC_BASE_URL:}
+storage:
+  bucket-name: ${STORAGE_BUCKET_NAME:runners-hi-profile}
+  public-base-url: ${STORAGE_PUBLIC_BASE_URL:https://runnershi-img.oguriworks.com}
+  endpoint: ${STORAGE_ENDPOINT:}
+  access-key: ${STORAGE_ACCESS_KEY:}
+  secret-key: ${STORAGE_SECRET_KEY:}
 
 management:
   endpoints:
@@ -58,3 +60,5 @@ springdoc:
 
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  # 파일을 둘 수 없는 환경(Cloudflare Containers)은 서비스 계정 JSON을 base64로 넣는다
+  credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}

@@ -45,9 +45,12 @@ dependencies {
     // Apple OAuth (JWT/JWKS 처리)
     implementation("com.nimbusds:nimbus-jose-jwt:10.3")
 
-    // Google Cloud Storage
+    // Cloudflare R2 (S3 호환)
+    implementation(platform("software.amazon.awssdk:bom:2.31.78"))
+    implementation("software.amazon.awssdk:s3")
+
+    // Firebase 의존성 버전 정렬
     implementation(platform("com.google.cloud:libraries-bom:26.55.0"))
-    implementation("com.google.cloud:google-cloud-storage")
 
     // Firebase Admin SDK (FCM 푸시)
     implementation("com.google.firebase:firebase-admin:9.4.3")

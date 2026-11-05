@@ -1,12 +1,14 @@
 package com.runnershi.common.storage
 
-import com.google.cloud.storage.BlobId
-import com.google.cloud.storage.BlobInfo
-import com.google.cloud.storage.HttpMethod
-import com.google.cloud.storage.Storage
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
+import java.time.Duration
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 data class PresignedUrlInfo(
     val url: String,
@@ -15,8 +17,9 @@ data class PresignedUrlInfo(
 
 @Service
 class StorageService(
-    private val storage: Storage,
-    private val gcsProperties: GcsProperties
+    @Lazy private val presigner: S3Presigner,
+    @Lazy private val s3Client: S3Client,
+    private val properties: StorageProperties
 ) {
 
     companion object {
@@ -25,7 +28,7 @@ class StorageService(
             "image/png" to "png",
             "image/webp" to "webp"
         )
-        private const val PRESIGNED_URL_DURATION_MINUTES = 15L
+        private val PRESIGNED_URL_DURATION: Duration = Duration.ofMinutes(15)
     }
 
     fun generatePresignedUploadUrl(userId: Long, contentType: String): PresignedUrlInfo {
@@ -34,26 +37,29 @@ class StorageService(
 
         val objectKey = "profiles/$userId/${UUID.randomUUID()}.$ext"
 
-        val blobInfo = BlobInfo.newBuilder(BlobId.of(gcsProperties.bucketName, objectKey))
-            .setContentType(contentType)
+        val request = PutObjectPresignRequest.builder()
+            .signatureDuration(PRESIGNED_URL_DURATION)
+            .putObjectRequest(
+                PutObjectRequest.builder()
+                    .bucket(properties.bucketName)
+                    .key(objectKey)
+                    .contentType(contentType)
+                    .build()
+            )
             .build()
 
-        val url = storage.signUrl(
-            blobInfo,
-            PRESIGNED_URL_DURATION_MINUTES,
-            TimeUnit.MINUTES,
-            Storage.SignUrlOption.httpMethod(HttpMethod.PUT),
-            Storage.SignUrlOption.withContentType()
-        )
-
         return PresignedUrlInfo(
-            url = url.toString(),
+            url = presigner.presignPutObject(request).url().toString(),
             objectKey = objectKey
         )
     }
 
     fun deleteObject(objectKey: String) {
-        val blobId = BlobId.of(gcsProperties.bucketName, objectKey)
-        storage.delete(blobId)
+        s3Client.deleteObject(
+            DeleteObjectRequest.builder()
+                .bucket(properties.bucketName)
+                .key(objectKey)
+                .build()
+        )
     }
 }

@@ -6,8 +6,8 @@ import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.common.storage.PresignedUrlInfo
-import com.runnershi.common.storage.GcsProperties
 import com.runnershi.common.storage.ProfileImageUrlResolver
+import com.runnershi.common.storage.StorageProperties
 import com.runnershi.common.storage.StorageService
 import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
 import com.runnershi.domain.mission.repository.UserMissionRepository
@@ -96,7 +96,7 @@ class UserServiceTest {
             userLevelSnapshotRepository,
             appleTokenClient,
             storageService,
-            ProfileImageUrlResolver(GcsProperties("test-bucket", "test-project")),
+            ProfileImageUrlResolver(StorageProperties("test-bucket", "https://storage.googleapis.com/test-bucket")),
             notificationRepository,
             feedbackRepository
         )

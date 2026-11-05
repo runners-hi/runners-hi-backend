@@ -71,7 +71,7 @@ class UserController(
         return ApiResponse.success(Unit)
     }
 
-    @Operation(summary = "프로필 이미지 업로드 URL 발급", description = "GCS Presigned URL을 발급하여 클라이언트가 직접 이미지를 업로드할 수 있도록 합니다")
+    @Operation(summary = "프로필 이미지 업로드 URL 발급", description = "저장소 Presigned URL을 발급하여 클라이언트가 직접 이미지를 업로드할 수 있도록 합니다")
     @PostMapping("/me/profile-image/upload-url")
     fun getProfileImageUploadUrl(
         @AuthenticationPrincipal userId: Long,

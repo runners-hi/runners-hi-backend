@@ -125,7 +125,7 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        // 이전 이미지가 있으면 GCS에서 삭제 (실패해도 새 이미지 확정 진행)
+        // 이전 이미지가 있으면 저장소에서 삭제 (실패해도 새 이미지 확정 진행)
         user.profileImageUrl?.let {
             try { storageService.deleteObject(it) } catch (e: Exception) {
                 log.warn("이전 프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
