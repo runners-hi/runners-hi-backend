@@ -99,7 +99,7 @@ export class BackendContainer extends DurableObject {
     if (!container.running) {
       container.start({
         image: container.images.base,
-        instance: "standard-1",
+        instance: "standard-2",
         enableInternet: true,
         env,
       });
