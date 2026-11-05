@@ -1,7 +1,9 @@
 package com.runnershi.domain.ranking.service
 
+import com.runnershi.common.storage.ProfileImageUrlResolver
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.level.service.LevelService
 import com.runnershi.domain.ranking.dto.MyRankingResponse
 import com.runnershi.domain.ranking.dto.RankingListResponse
 import com.runnershi.domain.ranking.dto.RankingResponse
@@ -13,14 +15,16 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class RankingService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val levelService: LevelService,
+    private val profileImageUrlResolver: ProfileImageUrlResolver
 ) {
 
     @Transactional(readOnly = true)
     fun getRankings(userId: Long, cursor: Long?, size: Int): RankingListResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
-        val regionId = user.regionId
+        val districtId = user.districtId
             ?: throw BusinessException(ErrorCode.REGION_NOT_SELECTED)
 
         val pageable = PageRequest.of(0, size + 1)
@@ -29,14 +33,14 @@ class RankingService(
             val cursorUser = userRepository.findById(cursor).orElse(null)
             if (cursorUser != null) {
                 userRepository.findRankingWithCursor(
-                    regionId, UserStatus.ACTIVE,
+                    districtId, UserStatus.ACTIVE,
                     cursorUser.totalDistance, cursorUser.id, pageable
                 )
             } else {
-                userRepository.findRanking(regionId, UserStatus.ACTIVE, pageable)
+                userRepository.findRanking(districtId, UserStatus.ACTIVE, pageable)
             }
         } else {
-            userRepository.findRanking(regionId, UserStatus.ACTIVE, pageable)
+            userRepository.findRanking(districtId, UserStatus.ACTIVE, pageable)
         }
 
         val hasNext = users.size > size
@@ -45,7 +49,7 @@ class RankingService(
         // 순위 계산: 같은 totalDistance → 같은 순위 (RANK 방식)
         // distinct distance별로 한 번만 쿼리하여 N+1 방지
         val rankMap = content.map { it.totalDistance }.distinct().associateWith { distance ->
-            userRepository.countRank(regionId, UserStatus.ACTIVE, distance).toInt()
+            userRepository.countRank(districtId, UserStatus.ACTIVE, distance).toInt()
         }
 
         val rankings = content.map { u ->
@@ -53,7 +57,7 @@ class RankingService(
                 rank = rankMap[u.totalDistance]!!,
                 userId = u.id,
                 nickname = u.nickname,
-                profileImageUrl = u.profileImageUrl,
+                profileImageUrl = profileImageUrlResolver.resolve(u.profileImageUrl),
                 tier = u.tier,
                 totalDistance = u.totalDistance
             )
@@ -70,17 +74,19 @@ class RankingService(
     fun getMyRanking(userId: Long): MyRankingResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
-        val regionId = user.regionId
+        val districtId = user.districtId
             ?: throw BusinessException(ErrorCode.REGION_NOT_SELECTED)
 
-        val rank = userRepository.countRank(regionId, UserStatus.ACTIVE, user.totalDistance).toInt()
+        val rank = userRepository.countRank(districtId, UserStatus.ACTIVE, user.totalDistance).toInt()
 
         return MyRankingResponse(
             rank = rank,
             nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
+            profileImageUrl = profileImageUrlResolver.resolve(user.profileImageUrl),
             tier = user.tier,
-            totalDistance = user.totalDistance
+            totalDistance = user.totalDistance,
+            level = user.level,
+            progressPercent = levelService.calculateProgress(user.experience)
         )
     }
 }

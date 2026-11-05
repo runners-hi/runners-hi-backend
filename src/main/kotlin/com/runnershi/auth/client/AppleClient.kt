@@ -17,7 +17,8 @@ import java.net.URI
 
 @Component
 class AppleClient(
-    @Value("\${oauth.apple.bundle-id}") private val bundleId: String
+    @Value("\${oauth.apple.bundle-id}") private val bundleId: String,
+    @Value("\${oauth.apple.service-id:}") private val serviceId: String = ""
 ) : AuthClient {
 
     companion object {
@@ -46,12 +47,14 @@ class AppleClient(
                     JWSAlgorithm.RS256,
                     ImmutableJWKSet(jwkSet)
                 )
+                // iOS 토큰의 aud는 번들 ID, 안드로이드 웹 로그인 토큰의 aud는 Service ID다.
                 jwtClaimsSetVerifier = DefaultJWTClaimsVerifier<SecurityContext>(
+                    setOf(bundleId, serviceId).filter { it.isNotBlank() }.toSet(),
                     JWTClaimsSet.Builder()
                         .issuer(APPLE_ISSUER)
-                        .audience(bundleId)
                         .build(),
-                    setOf("sub", "iss", "aud", "exp")
+                    setOf("sub", "iss", "aud", "exp"),
+                    null
                 )
             }
 

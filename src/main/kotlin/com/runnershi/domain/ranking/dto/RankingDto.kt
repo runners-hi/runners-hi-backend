@@ -29,5 +29,7 @@ data class MyRankingResponse(
     val nickname: String,
     val profileImageUrl: String?,
     val tier: Tier,
-    val totalDistance: Int
+    val totalDistance: Int,
+    val level: Int,
+    val progressPercent: Int
 )

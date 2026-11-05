@@ -26,6 +26,7 @@ class UserRepositoryTest : RepositoryTest() {
         providerId: String,
         nickname: String,
         regionId: Long? = null,
+        districtId: Long? = null,
         totalDistance: Int = 0,
         status: UserStatus = UserStatus.ACTIVE
     ): User {
@@ -36,6 +37,7 @@ class UserRepositoryTest : RepositoryTest() {
             status = status
         )
         user.regionId = regionId
+        user.districtId = districtId
         user.totalDistance = totalDistance
         return userRepository.save(user)
     }
@@ -100,15 +102,15 @@ class UserRepositoryTest : RepositoryTest() {
         @Test
         @DisplayName("같은 지역의 ACTIVE 유저를 거리 내림차순으로 조회")
         fun rankedByDistance() {
-            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, totalDistance = 5000, status = UserStatus.ACTIVE)
-            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, totalDistance = 10000, status = UserStatus.ACTIVE)
-            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, totalDistance = 3000, status = UserStatus.ACTIVE)
+            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, districtId = 10L, totalDistance = 5000, status = UserStatus.ACTIVE)
+            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, districtId = 10L, totalDistance = 10000, status = UserStatus.ACTIVE)
+            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, districtId = 10L, totalDistance = 3000, status = UserStatus.ACTIVE)
             // 다른 지역 유저 - 제외되어야 함
-            createUser(providerId = "u4", nickname = "유저4", regionId = 2L, totalDistance = 20000, status = UserStatus.ACTIVE)
+            createUser(providerId = "u4", nickname = "유저4", regionId = 2L, districtId = 20L, totalDistance = 20000, status = UserStatus.ACTIVE)
             // WITHDRAWN 유저 - 제외되어야 함
-            createUser(providerId = "u5", nickname = "유저5", regionId = 1L, totalDistance = 15000, status = UserStatus.WITHDRAWN)
+            createUser(providerId = "u5", nickname = "유저5", regionId = 1L, districtId = 10L, totalDistance = 15000, status = UserStatus.WITHDRAWN)
 
-            val result = userRepository.findRanking(1L, UserStatus.ACTIVE, PageRequest.of(0, 10))
+            val result = userRepository.findRanking(10L, UserStatus.ACTIVE, PageRequest.of(0, 10))
 
             assertEquals(3, result.size)
             assertEquals("유저2", result[0].nickname) // 10000m
@@ -124,13 +126,13 @@ class UserRepositoryTest : RepositoryTest() {
         @Test
         @DisplayName("커서 기반 페이지네이션으로 다음 페이지 조회")
         fun cursorPagination() {
-            val u1 = createUser(providerId = "u1", nickname = "유저1", regionId = 1L, totalDistance = 10000)
-            val u2 = createUser(providerId = "u2", nickname = "유저2", regionId = 1L, totalDistance = 5000)
-            val u3 = createUser(providerId = "u3", nickname = "유저3", regionId = 1L, totalDistance = 3000)
+            val u1 = createUser(providerId = "u1", nickname = "유저1", regionId = 1L, districtId = 10L, totalDistance = 10000)
+            val u2 = createUser(providerId = "u2", nickname = "유저2", regionId = 1L, districtId = 10L, totalDistance = 5000)
+            val u3 = createUser(providerId = "u3", nickname = "유저3", regionId = 1L, districtId = 10L, totalDistance = 3000)
 
             // u1(10000m) 이후 커서
             val result = userRepository.findRankingWithCursor(
-                regionId = 1L,
+                districtId = 10L,
                 status = UserStatus.ACTIVE,
                 cursorDistance = 10000,
                 cursorId = u1.id,
@@ -150,24 +152,24 @@ class UserRepositoryTest : RepositoryTest() {
         @Test
         @DisplayName("나보다 거리가 높은 유저 수 + 1 = 내 순위")
         fun calculateRank() {
-            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, totalDistance = 10000)
-            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, totalDistance = 5000)
-            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, totalDistance = 3000)
+            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, districtId = 10L, totalDistance = 10000)
+            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, districtId = 10L, totalDistance = 5000)
+            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, districtId = 10L, totalDistance = 3000)
 
             // 5000m 유저의 순위 = 10000m보다 높은 사람 1명 + 1 = 2등
-            val rank = userRepository.countRank(1L, UserStatus.ACTIVE, 5000)
+            val rank = userRepository.countRank(10L, UserStatus.ACTIVE, 5000)
             assertEquals(2L, rank)
         }
 
         @Test
         @DisplayName("동점자는 같은 순위")
         fun tiedRank() {
-            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, totalDistance = 10000)
-            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, totalDistance = 10000)
-            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, totalDistance = 5000)
+            createUser(providerId = "u1", nickname = "유저1", regionId = 1L, districtId = 10L, totalDistance = 10000)
+            createUser(providerId = "u2", nickname = "유저2", regionId = 1L, districtId = 10L, totalDistance = 10000)
+            createUser(providerId = "u3", nickname = "유저3", regionId = 1L, districtId = 10L, totalDistance = 5000)
 
             // 10000m 유저의 순위 = 자신보다 높은 사람 0명 + 1 = 1등
-            val rank = userRepository.countRank(1L, UserStatus.ACTIVE, 10000)
+            val rank = userRepository.countRank(10L, UserStatus.ACTIVE, 10000)
             assertEquals(1L, rank)
         }
     }

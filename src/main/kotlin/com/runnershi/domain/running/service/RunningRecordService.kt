@@ -10,14 +10,18 @@ import com.runnershi.domain.running.dto.RunningRecordListResponse
 import com.runnershi.domain.running.dto.RunningRecordResponse
 import com.runnershi.domain.running.dto.WeeklySummaryResponse
 import com.runnershi.domain.running.entity.RunningRecord
+import com.runnershi.domain.running.entity.RunningRecordSource
 import com.runnershi.domain.running.repository.RunningRecordRepository
 import com.runnershi.domain.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.floor
+import kotlin.math.min
 
 @Service
 class RunningRecordService(
@@ -26,6 +30,19 @@ class RunningRecordService(
     private val levelService: LevelService,
     private val missionChecker: MissionChecker
 ) {
+    companion object {
+        private val log = LoggerFactory.getLogger(RunningRecordService::class.java)
+
+        private const val XP_PER_KM = 100.0
+        private const val DAILY_XP_CAP = 1200
+
+        private const val MIN_XP_DISTANCE_METERS = 800
+        private const val MIN_XP_DURATION_SECONDS = 300
+        private const val MIN_VALID_PACE_SECONDS_PER_KM = 150   // 2:30/km
+        private const val MAX_VALID_PACE_SECONDS_PER_KM = 900   // 15:00/km
+
+        private const val MANUAL_SOURCE_MULTIPLIER = 0.7
+    }
 
     // === 러닝 기록 저장 ===
     // 1. pace 서버 계산, runningDate는 startedAt 기준 설정
@@ -43,7 +60,6 @@ class RunningRecordService(
     //     - 데이터 검증 강화 필요 (비정상 값 필터링)
     //   → 현재 API는 어떤 방식이든 호환되는 구조 (데이터를 받아서 저장)
     //
-    // TODO: 경험치 획득 공식 미정 - 기획 확정 후 calculateExperience() 구현
     @Transactional
     fun createRunningRecord(userId: Long, request: RunningRecordCreateRequest): RunningRecordResponse {
         val user = userRepository.findById(userId)
@@ -51,17 +67,28 @@ class RunningRecordService(
 
         // pace 계산: 총 시간(초) / 총 거리(km) → 초/km
         val pace = (request.duration / (request.distance / 1000.0)).toInt()
+        val runningDate = request.startedAt.toLocalDate()
+
+        val earnedXp = calculateEarnedXp(
+            userId = userId,
+            runningDate = runningDate,
+            distance = request.distance,
+            duration = request.duration,
+            pace = pace,
+            source = request.source
+        )
 
         val record = runningRecordRepository.save(
             RunningRecord(
                 userId = userId,
-                runningDate = request.startedAt.toLocalDate(),
+                runningDate = runningDate,
                 distance = request.distance,
                 duration = request.duration,
                 pace = pace,
                 calories = request.calories,
                 startedAt = request.startedAt,
                 endedAt = request.endedAt,
+                source = request.source,
                 memo = request.memo
             )
         )
@@ -69,18 +96,68 @@ class RunningRecordService(
         // User.totalDistance 동기화
         user.totalDistance += request.distance
 
-        // TODO: 경험치 획득 공식 미정 (거리/속도/시간 → XP 변환)
-        //       기획 확정 후 아래 주석 해제 및 calculateExperience() 구현
-        // val earnedXp = calculateExperience(request.distance, request.duration, pace)
-        // user.experience += earnedXp
-        // val (newLevel, newTier) = levelService.calculateLevelAndTier(user.experience)
-        // user.level = newLevel
-        // user.tier = newTier
+        if (earnedXp > 0) {
+            user.experience += earnedXp
+            val (newLevel, newTier) = levelService.calculateLevelAndTier(user.experience)
+            user.level = newLevel
+            user.tier = newTier
+        }
 
         // 미션 달성 체크
         missionChecker.checkOnRunningRecordCreated(userId, record)
 
         return RunningRecordResponse.from(record)
+    }
+
+    private fun calculateEarnedXp(
+        userId: Long,
+        runningDate: LocalDate,
+        distance: Int,
+        duration: Int,
+        pace: Int,
+        source: RunningRecordSource
+    ): Int {
+        if (!isValidForExperience(distance, duration, pace)) {
+            log.info(
+                "XP not granted by validation - userId={}, date={}, distance={}, duration={}, pace={}",
+                userId, runningDate, distance, duration, pace
+            )
+            return 0
+        }
+
+        val rawXp = calculateRawXp(distance, source)
+        if (rawXp <= 0) return 0
+
+        val todayXp = runningRecordRepository.findByUserIdAndRunningDate(userId, runningDate)
+            .sumOf { record ->
+                if (isValidForExperience(record.distance, record.duration, record.pace)) {
+                    calculateRawXp(record.distance, record.source)
+                } else {
+                    0
+                }
+            }
+
+        val remainingDailyXp = DAILY_XP_CAP - todayXp
+        if (remainingDailyXp <= 0) {
+            return 0
+        }
+
+        return min(rawXp, remainingDailyXp)
+    }
+
+    private fun isValidForExperience(distance: Int, duration: Int, pace: Int): Boolean {
+        return distance >= MIN_XP_DISTANCE_METERS &&
+            duration >= MIN_XP_DURATION_SECONDS &&
+            pace in MIN_VALID_PACE_SECONDS_PER_KM..MAX_VALID_PACE_SECONDS_PER_KM
+    }
+
+    private fun calculateRawXp(distance: Int, source: RunningRecordSource): Int {
+        val sourceMultiplier = when (source) {
+            RunningRecordSource.MANUAL -> MANUAL_SOURCE_MULTIPLIER
+            RunningRecordSource.HEALTH_KIT, RunningRecordSource.HEALTH_CONNECT -> 1.0
+        }
+        val distanceKm = distance / 1000.0
+        return floor(distanceKm * XP_PER_KM * sourceMultiplier).toInt()
     }
 
     // 주간 요약: DB 레벨 집계 쿼리로 합산 (별도 summary 테이블 없음)

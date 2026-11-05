@@ -18,7 +18,8 @@ import java.time.LocalDateTime
         UniqueConstraint(columnNames = ["nickname"])
     ],
     indexes = [
-        Index(name = "idx_users_region_distance", columnList = "region_id, total_distance")
+        Index(name = "idx_users_region_distance", columnList = "region_id, total_distance"),
+        Index(name = "idx_users_district_distance", columnList = "district_id, total_distance")
     ]
 )
 class User(
@@ -28,9 +29,9 @@ class User(
     val provider: Provider,
 
     @Column(name = "provider_id", nullable = false)
-    val providerId: String,
+    var providerId: String,
 
-    val email: String? = null,
+    var email: String? = null,
 
     // 프로필
     @Column(nullable = false)
@@ -41,6 +42,9 @@ class User(
     // 지역
     @Column(name = "region_id")
     var regionId: Long? = null,
+
+    @Column(name = "district_id")
+    var districtId: Long? = null,
 
     // 등급/레벨
     @Enumerated(EnumType.STRING)
@@ -69,6 +73,7 @@ class User(
     var fcmToken: String? = null,
 
     // 토큰 (stateful 방식)
+    var appleRefreshToken: String? = null,
     var refreshToken: String? = null,
     var refreshTokenExpiresAt: LocalDateTime? = null,
 

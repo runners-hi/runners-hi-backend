@@ -17,23 +17,23 @@ interface UserRepository : JpaRepository<User, Long> {
 
     @Query("""
         SELECT u FROM User u
-        WHERE u.regionId = :regionId
+        WHERE u.districtId = :districtId
         AND u.status = :status
         ORDER BY u.totalDistance DESC, u.id ASC
     """)
-    fun findRanking(regionId: Long, status: UserStatus, pageable: Pageable): List<User>
+    fun findRanking(districtId: Long, status: UserStatus, pageable: Pageable): List<User>
 
     // 커서 기반: (totalDistance, id) 기준 keyset pagination
     @Query("""
         SELECT u FROM User u
-        WHERE u.regionId = :regionId
+        WHERE u.districtId = :districtId
         AND u.status = :status
         AND (u.totalDistance < :cursorDistance
              OR (u.totalDistance = :cursorDistance AND u.id > :cursorId))
         ORDER BY u.totalDistance DESC, u.id ASC
     """)
     fun findRankingWithCursor(
-        regionId: Long,
+        districtId: Long,
         status: UserStatus,
         cursorDistance: Int,
         cursorId: Long,
@@ -44,9 +44,9 @@ interface UserRepository : JpaRepository<User, Long> {
     // 동점 처리: 같은 거리면 같은 순위, 다음 순위는 건너뜀 (RANK 방식)
     @Query("""
         SELECT COUNT(u) + 1 FROM User u
-        WHERE u.regionId = :regionId
+        WHERE u.districtId = :districtId
         AND u.status = :status
         AND u.totalDistance > :totalDistance
     """)
-    fun countRank(regionId: Long, status: UserStatus, totalDistance: Int): Long
+    fun countRank(districtId: Long, status: UserStatus, totalDistance: Int): Long
 }

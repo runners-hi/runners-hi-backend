@@ -66,7 +66,7 @@ class UserController(
         @AuthenticationPrincipal userId: Long,
         @Valid @RequestBody request: RegionUpdateRequest
     ): ApiResponse<Unit> {
-        userService.updateRegion(userId, request.regionId)
+        userService.updateRegion(userId, request.regionId, request.districtId)
         return ApiResponse.success(Unit)
     }
 
@@ -99,7 +99,7 @@ class UserController(
         return ApiResponse.success(Unit)
     }
 
-    @Operation(summary = "계정 탈퇴", description = "계정 탈퇴 (정책 확정 후 개인정보 처리 추가 예정)")
+    @Operation(summary = "계정 탈퇴", description = "계정 탈퇴 및 개인정보 마스킹 처리")
     @DeleteMapping("/me")
     fun withdraw(
         @AuthenticationPrincipal userId: Long

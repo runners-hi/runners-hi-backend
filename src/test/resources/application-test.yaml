@@ -26,6 +26,9 @@ oauth:
     client-id: test-google-client-id
   apple:
     bundle-id: test-apple-bundle-id
+    team-id: test-apple-team-id
+    key-id: test-apple-key-id
+    private-key: test-apple-private-key
 
 logging:
   level:

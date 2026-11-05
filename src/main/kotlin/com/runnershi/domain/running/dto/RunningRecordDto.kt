@@ -1,6 +1,7 @@
 package com.runnershi.domain.running.dto
 
 import com.runnershi.domain.running.entity.RunningRecord
+import com.runnershi.domain.running.entity.RunningRecordSource
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
@@ -24,6 +25,8 @@ data class RunningRecordCreateRequest(
 
     @field:NotNull(message = "종료 시간은 필수입니다")
     val endedAt: LocalDateTime,
+
+    val source: RunningRecordSource = RunningRecordSource.MANUAL,
 
     val memo: String? = null
 )
