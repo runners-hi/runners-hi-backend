@@ -39,5 +39,5 @@ class TermsController(
         return ApiResponse.success(Unit)
     }
 
-    // TODO: 선택 약관(마케팅, SNS) 동의 철회 API 필요 여부 확인
+    // 선택 동의 철회는 약관에 안내한 대로 앱 알림 설정과 회원 탈퇴로 처리한다
 }
