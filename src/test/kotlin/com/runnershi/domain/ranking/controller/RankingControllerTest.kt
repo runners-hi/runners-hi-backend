@@ -91,7 +91,7 @@ class RankingControllerTest : ControllerTest() {
         @Test
         @DisplayName("내 순위 조회 성공")
         fun success() {
-            val response = MyRankingResponse(3, "나", null, Tier.SILVER, 5000)
+            val response = MyRankingResponse(3, "나", null, Tier.SILVER, 5000, 7, 50)
             whenever(rankingService.getMyRanking(any())).thenReturn(response)
 
             mockMvc.perform(
@@ -102,6 +102,8 @@ class RankingControllerTest : ControllerTest() {
                 .andExpect(jsonPath("$.data.rank").value(3))
                 .andExpect(jsonPath("$.data.nickname").value("나"))
                 .andExpect(jsonPath("$.data.tier").value("SILVER"))
+                .andExpect(jsonPath("$.data.level").value(7))
+                .andExpect(jsonPath("$.data.progressPercent").value(50))
         }
     }
 }
