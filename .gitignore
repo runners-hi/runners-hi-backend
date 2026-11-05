@@ -61,3 +61,7 @@ package-lock.json
 
 ### Docker ###
 docker-compose.override.yml
+
+# Cloudflare 배포
+deploy/cloudflare/app.jar
+deploy/cloudflare/.wrangler/

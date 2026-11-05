@@ -1,0 +1,10 @@
+{
+  "name": "runners-hi-backend-worker",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}

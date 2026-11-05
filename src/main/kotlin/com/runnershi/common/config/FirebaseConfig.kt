@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 import java.io.File
+import java.util.Base64
 import jakarta.annotation.PostConstruct
 
 @Configuration
@@ -19,15 +20,22 @@ class FirebaseConfig {
     @Value("\${firebase.credentials-path:}")
     private lateinit var credentialsPath: String
 
+    @Value("\${firebase.credentials-base64:}")
+    private lateinit var credentialsBase64: String
+
     // Firebase Admin SDK 초기화
     // 로컬: FIREBASE_CREDENTIALS_PATH에 서비스 계정 JSON 경로 지정
-    // Cloud Run: Application Default Credentials 자동 사용
+    // 파일을 둘 수 없는 환경: FIREBASE_CREDENTIALS_BASE64에 JSON을 base64로 지정
+    // 그 외: Application Default Credentials 자동 사용
     @PostConstruct
     fun initialize() {
         if (FirebaseApp.getApps().isNotEmpty()) return
 
         try {
-            val credentials = if (credentialsPath.isNotBlank() && File(credentialsPath).exists()) {
+            val credentials = if (credentialsBase64.isNotBlank()) {
+                Base64.getDecoder().decode(credentialsBase64.trim()).inputStream()
+                    .use { GoogleCredentials.fromStream(it) }
+            } else if (credentialsPath.isNotBlank() && File(credentialsPath).exists()) {
                 File(credentialsPath).inputStream().use { GoogleCredentials.fromStream(it) }
             } else {
                 GoogleCredentials.getApplicationDefault()

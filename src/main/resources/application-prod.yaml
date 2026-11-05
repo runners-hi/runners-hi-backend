@@ -4,6 +4,10 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Supabase 무료 플랜은 전체 연결이 60개라 적게 쓴다
+      maximum-pool-size: 5
+      minimum-idle: 1
 
   jpa:
     show-sql: false
