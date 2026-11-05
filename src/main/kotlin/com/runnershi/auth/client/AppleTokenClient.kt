@@ -31,7 +31,9 @@ class AppleTokenClient(
     @Value("\${oauth.apple.bundle-id}") private val clientId: String,
     @Value("\${oauth.apple.team-id}") private val teamId: String,
     @Value("\${oauth.apple.key-id}") private val keyId: String,
-    @Value("\${oauth.apple.private-key}") private val privateKey: String
+    @Value("\${oauth.apple.private-key}") private val privateKey: String,
+    @Value("\${oauth.apple.service-id:}") private val serviceId: String = "",
+    @Value("\${oauth.apple.redirect-uri:}") private val redirectUri: String = ""
 ) {
 
     companion object {
@@ -40,7 +42,18 @@ class AppleTokenClient(
         private const val APPLE_AUDIENCE = "https://appleid.apple.com"
     }
 
-    fun exchangeAuthorizationCode(authorizationCode: String): String {
+    fun exchangeAuthorizationCode(authorizationCode: String): String =
+        exchange(authorizationCode, clientId, redirectUri = null)
+
+    /** 안드로이드 웹 로그인 코드 교환. 인가 요청과 같은 Service ID와 redirect URI를 보내야 한다. */
+    fun exchangeWebAuthorizationCode(authorizationCode: String): String {
+        if (serviceId.isBlank() || redirectUri.isBlank()) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Apple 웹 로그인 설정이 누락되었습니다")
+        }
+        return exchange(authorizationCode, serviceId, redirectUri)
+    }
+
+    private fun exchange(authorizationCode: String, client: String, redirectUri: String?): String {
         validateConfig()
 
         val headers = HttpHeaders().apply {
@@ -49,10 +62,11 @@ class AppleTokenClient(
 
         return try {
             val body = LinkedMultiValueMap<String, String>().apply {
-                add("client_id", clientId)
-                add("client_secret", createClientSecret())
+                add("client_id", client)
+                add("client_secret", createClientSecret(client))
                 add("code", authorizationCode)
                 add("grant_type", "authorization_code")
+                redirectUri?.let { add("redirect_uri", it) }
             }
 
             val response = restTemplate.postForEntity(
@@ -79,8 +93,24 @@ class AppleTokenClient(
         }
     }
 
+    /** 토큰을 발급한 client_id로만 해지되므로 번들 ID, Service ID 순서로 시도한다. */
     fun revokeRefreshToken(refreshToken: String) {
         validateConfig()
+
+        val clients = listOf(clientId, serviceId).filter { it.isNotBlank() }.distinct()
+        var lastError: BusinessException? = null
+        for (client in clients) {
+            try {
+                revoke(refreshToken, client)
+                return
+            } catch (e: BusinessException) {
+                lastError = e
+            }
+        }
+        lastError?.let { throw it }
+    }
+
+    private fun revoke(refreshToken: String, client: String) {
 
         val headers = HttpHeaders().apply {
             contentType = MediaType.APPLICATION_FORM_URLENCODED
@@ -88,8 +118,8 @@ class AppleTokenClient(
 
         try {
             val body = LinkedMultiValueMap<String, String>().apply {
-                add("client_id", clientId)
-                add("client_secret", createClientSecret())
+                add("client_id", client)
+                add("client_secret", createClientSecret(client))
                 add("token", refreshToken)
                 add("token_type_hint", "refresh_token")
             }
@@ -112,14 +142,14 @@ class AppleTokenClient(
         }
     }
 
-    private fun createClientSecret(): String {
+    private fun createClientSecret(client: String): String {
         val now = Instant.now()
         val claims = JWTClaimsSet.Builder()
             .issuer(teamId)
             .issueTime(Date.from(now))
             .expirationTime(Date.from(now.plus(180, ChronoUnit.DAYS)))
             .audience(APPLE_AUDIENCE)
-            .subject(clientId)
+            .subject(client)
             .build()
 
         val signedJwt = SignedJWT(

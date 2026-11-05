@@ -51,6 +51,15 @@ class AuthController(
         return ApiResponse.success(response)
     }
 
+    @Operation(summary = "애플 웹 로그인", description = "안드로이드 웹 로그인의 id_token + authorization code로 로그인/회원가입")
+    @PostMapping("/apple/web")
+    fun loginWithAppleWeb(
+        @Valid @RequestBody request: AppleLoginRequest
+    ): ApiResponse<AuthResponse> {
+        val response = authService.loginWithAppleWeb(request.idToken, request.authorizationCode)
+        return ApiResponse.success(response)
+    }
+
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 새로운 Access Token 발급")
     @PostMapping("/refresh")
     fun refreshToken(

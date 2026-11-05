@@ -48,6 +48,13 @@ class AuthService(
         return processLogin(Provider.APPLE, userInfo, appleRefreshToken)
     }
 
+    @Transactional
+    fun loginWithAppleWeb(idToken: String, authorizationCode: String): AuthResponse {
+        val userInfo = getClient(Provider.APPLE).verify(idToken)
+        val appleRefreshToken = appleTokenClient.exchangeWebAuthorizationCode(authorizationCode)
+        return processLogin(Provider.APPLE, userInfo, appleRefreshToken)
+    }
+
     private fun getClient(provider: Provider): AuthClient {
         return authClients.find { it.getProvider() == provider }
             ?: throw IllegalStateException("AuthClient not found: $provider")
