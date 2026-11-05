@@ -17,6 +17,7 @@ import com.runnershi.domain.region.entity.Region
 import com.runnershi.domain.region.entity.RegionType
 import com.runnershi.domain.region.repository.DistrictRepository
 import com.runnershi.domain.region.repository.RegionRepository
+import com.runnershi.domain.running.repository.RunningRecordRepository
 import com.runnershi.domain.terms.repository.TermsAgreementRepository
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
@@ -80,6 +81,9 @@ class UserServiceTest {
     lateinit var notificationRepository: NotificationRepository
 
     @Mock
+    lateinit var runningRecordRepository: RunningRecordRepository
+
+    @Mock
     lateinit var feedbackRepository: FeedbackRepository
 
     private lateinit var userService: UserService
@@ -98,7 +102,8 @@ class UserServiceTest {
             storageService,
             ProfileImageUrlResolver(StorageProperties("test-bucket", "https://storage.googleapis.com/test-bucket")),
             notificationRepository,
-            feedbackRepository
+            feedbackRepository,
+            runningRecordRepository
         )
     }
 
@@ -337,6 +342,7 @@ class UserServiceTest {
             userService.withdraw(1L)
 
             assertEquals(UserStatus.WITHDRAWN, user.status)
+            verify(runningRecordRepository).deleteAllByUserId(1L)
             assertNotNull(user.deletedAt)
             assertEquals("withdrawn_1", user.providerId)
             assertEquals("withdrawn_1", user.nickname)

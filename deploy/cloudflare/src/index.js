@@ -1,4 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
+import privacyHtml from "./privacy.html";
+import termsHtml from "./terms.html";
 
 const PORT = 8080;
 const HEALTH_URL = "http://container/actuator/health";
@@ -96,6 +98,9 @@ export class BackendContainer extends DurableObject {
   }
 }
 
+// 공개 문서는 컨테이너를 깨우지 않고 바로 응답한다
+const PAGES = { "/privacy": privacyHtml, "/terms": termsHtml };
+
 function backend(env) {
   const id = env.BACKEND.idFromName("main");
   return env.BACKEND.get(id, { locationHint: "apac" });
@@ -103,6 +108,12 @@ function backend(env) {
 
 export default {
   fetch(request, env) {
+    const page = PAGES[new URL(request.url).pathname];
+    if (page) {
+      return new Response(page, {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
     return backend(env).fetch(request);
   },
 

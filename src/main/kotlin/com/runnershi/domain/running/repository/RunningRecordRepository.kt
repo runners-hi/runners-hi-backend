@@ -9,6 +9,8 @@ import java.time.LocalDate
 
 interface RunningRecordRepository : JpaRepository<RunningRecord, Long> {
 
+    fun deleteAllByUserId(userId: Long)
+
     @Query("""
         SELECT r FROM RunningRecord r
         WHERE r.userId = :userId
