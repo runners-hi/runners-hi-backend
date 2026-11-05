@@ -29,6 +29,7 @@ class StorageService(
             "image/webp" to "webp"
         )
         private val PRESIGNED_URL_DURATION: Duration = Duration.ofMinutes(15)
+        private const val PROFILE_IMAGE_CACHE_CONTROL = "public, max-age=300"
     }
 
     fun generatePresignedUploadUrl(userId: Long, contentType: String): PresignedUrlInfo {
@@ -44,6 +45,8 @@ class StorageService(
                     .bucket(properties.bucketName)
                     .key(objectKey)
                     .contentType(contentType)
+                    // 탈퇴로 지운 사진이 CDN에 오래 남지 않게 5분만 캐시한다. 앱도 같은 값을 보내야 서명이 맞는다
+                    .cacheControl(PROFILE_IMAGE_CACHE_CONTROL)
                     .build()
             )
             .build()

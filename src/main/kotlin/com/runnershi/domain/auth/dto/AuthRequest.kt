@@ -12,6 +12,11 @@ data class GoogleLoginRequest(
     val idToken: String
 )
 
+data class ReviewLoginRequest(
+    @field:NotBlank(message = "code는 필수입니다")
+    val code: String
+)
+
 data class AppleLoginRequest(
     @field:NotBlank(message = "idToken은 필수입니다")
     val idToken: String,
