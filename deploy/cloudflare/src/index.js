@@ -99,7 +99,8 @@ export class BackendContainer extends DurableObject {
     if (!container.running) {
       container.start({
         image: container.images.base,
-        instance: "standard-2",
+        // 실사용 메모리는 400MB 미만. CPU 1개를 쓰려면 3GiB가 최소다
+        instance: { vcpu: 1, memoryMib: 3072, diskMb: 8000 },
         enableInternet: true,
         env,
       });
