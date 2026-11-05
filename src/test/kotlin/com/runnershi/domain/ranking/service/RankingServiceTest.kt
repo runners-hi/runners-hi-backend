@@ -2,6 +2,7 @@ package com.runnershi.domain.ranking.service
 
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.level.service.LevelService
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.Tier
 import com.runnershi.domain.user.entity.User
@@ -32,12 +33,13 @@ import kotlin.test.assertTrue
 class RankingServiceTest {
 
     @Mock lateinit var userRepository: UserRepository
+    @Mock lateinit var levelService: LevelService
 
     private lateinit var rankingService: RankingService
 
     @BeforeEach
     fun setUp() {
-        rankingService = RankingService(userRepository)
+        rankingService = RankingService(userRepository, levelService)
     }
 
     private fun createUser(
@@ -133,9 +135,12 @@ class RankingServiceTest {
         fun success() {
             val me = createUser(1L, "나", regionId = 1L, totalDistance = 5000)
             me.tier = Tier.SILVER
+            me.level = 7
+            me.experience = 650
 
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(me))
             whenever(userRepository.countRank(10L, UserStatus.ACTIVE, 5000)).thenReturn(3L)
+            whenever(levelService.calculateProgress(650)).thenReturn(50)
 
             val response = rankingService.getMyRanking(1L)
 
@@ -143,6 +148,8 @@ class RankingServiceTest {
             assertEquals("나", response.nickname)
             assertEquals(Tier.SILVER, response.tier)
             assertEquals(5000, response.totalDistance)
+            assertEquals(7, response.level)
+            assertEquals(50, response.progressPercent)
         }
 
         @Test

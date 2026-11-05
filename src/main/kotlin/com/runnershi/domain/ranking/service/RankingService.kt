@@ -2,6 +2,7 @@ package com.runnershi.domain.ranking.service
 
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.domain.level.service.LevelService
 import com.runnershi.domain.ranking.dto.MyRankingResponse
 import com.runnershi.domain.ranking.dto.RankingListResponse
 import com.runnershi.domain.ranking.dto.RankingResponse
@@ -13,7 +14,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class RankingService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val levelService: LevelService
 ) {
 
     @Transactional(readOnly = true)
@@ -80,7 +82,9 @@ class RankingService(
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
             tier = user.tier,
-            totalDistance = user.totalDistance
+            totalDistance = user.totalDistance,
+            level = user.level,
+            progressPercent = levelService.calculateProgress(user.experience)
         )
     }
 }
