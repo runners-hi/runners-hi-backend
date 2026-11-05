@@ -160,6 +160,24 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("애플 웹 로그인은 웹 전용 코드 교환을 쓴다")
+        fun appleWebLogin_usesWebExchange() {
+            val userInfo = UserInfo("apple-123", null, null)
+            val savedUser = createUser(provider = Provider.APPLE, providerId = "apple-123")
+
+            whenever(appleClient.verify("apple-token")).thenReturn(userInfo)
+            whenever(appleTokenClient.exchangeWebAuthorizationCode("web-code")).thenReturn("web-refresh-token")
+            whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "apple-123")).thenReturn(savedUser)
+            whenever(jwtTokenProvider.createAccessToken(any())).thenReturn("access")
+            whenever(jwtTokenProvider.createRefreshToken(any())).thenReturn("refresh")
+
+            val response = authService.loginWithAppleWeb("apple-token", "web-code")
+
+            assertEquals("access", response.accessToken)
+            assertEquals("web-refresh-token", savedUser.appleRefreshToken)
+        }
+
+        @Test
         @DisplayName("애플 로그인 - 성공")
         fun appleLogin_success() {
             val userInfo = UserInfo("apple-123", "test@apple.com", null)
