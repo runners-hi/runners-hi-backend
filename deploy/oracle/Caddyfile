@@ -1,0 +1,20 @@
+runnershi-api.oguriworks.com {
+	encode gzip
+	handle /privacy {
+		root * /srv/runnershi/pages
+		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		root * /srv/runnershi/pages
+		rewrite * /terms.html
+		file_server
+	}
+	# 상태 확인 경로는 외부에 열지 않는다
+	handle /actuator/* {
+		respond 404
+	}
+	handle {
+		reverse_proxy localhost:8080
+	}
+}

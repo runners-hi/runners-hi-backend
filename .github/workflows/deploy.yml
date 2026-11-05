@@ -27,17 +27,19 @@ jobs:
       - name: Test and build jar
         run: |
           ./gradlew test bootJar --no-daemon
-          cp "$(ls build/libs/*.jar | grep -v plain)" deploy/cloudflare/app.jar
+          cp "$(ls build/libs/*.jar | grep -v plain)" deploy/oracle/app.jar
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Deploy to Cloudflare
-        working-directory: deploy/cloudflare
+      - name: Deploy to Oracle server
+        working-directory: deploy/oracle
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST_KEY: ${{ secrets.ORACLE_HOST_KEY }}
         run: |
-          npm ci
-          npx wrangler deploy
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$ORACLE_HOST_KEY" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy "ubuntu@$ORACLE_HOST" 'rm -rf ~/release && mkdir ~/release'
+          scp -i ~/.ssh/id_deploy -r app.jar pages Caddyfile runnershi.service deploy.sh "ubuntu@$ORACLE_HOST:release/"
+          ssh -i ~/.ssh/id_deploy "ubuntu@$ORACLE_HOST" 'bash ~/release/deploy.sh'

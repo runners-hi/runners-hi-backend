@@ -60,5 +60,5 @@ springdoc:
 
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
-  # 파일을 둘 수 없는 환경(Cloudflare Containers)은 서비스 계정 JSON을 base64로 넣는다
+  # 파일을 두지 않는 환경은 서비스 계정 JSON을 base64로 넣는다
   credentials-base64: ${FIREBASE_CREDENTIALS_BASE64:}

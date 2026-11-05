@@ -1,0 +1,16 @@
+[Unit]
+Description=RunnersHi backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/srv/runnershi
+EnvironmentFile=/srv/runnershi/env
+ExecStart=/usr/bin/java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xmx300m -XX:+ExitOnOutOfMemoryError -jar /srv/runnershi/app.jar
+Restart=always
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
