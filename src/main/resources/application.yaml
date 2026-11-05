@@ -55,3 +55,6 @@ springdoc:
     operations-sorter: alpha
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}

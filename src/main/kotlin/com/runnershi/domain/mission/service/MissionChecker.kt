@@ -1,5 +1,6 @@
 package com.runnershi.domain.mission.service
 
+import com.runnershi.domain.notification.service.NotificationService
 import com.runnershi.domain.mission.entity.ConditionType
 import com.runnershi.domain.mission.entity.Mission
 import com.runnershi.domain.mission.entity.MissionGroupType
@@ -19,13 +20,14 @@ import java.time.LocalDateTime
 // - 러닝 기록 저장 시: SINGLE_DISTANCE, CUMULATIVE_DISTANCE, PACE, RUN_ON_DATE, RUN_IN_PERIOD, FIRST_RUN 체크
 // - 지역 설정 시: REGION_SET 체크
 // - 이미 달성한 미션은 스킵, 활성 그룹(WELCOME + 기간 내 EVENT)의 미션만 체크
-// TODO: 미션 달성 시 알림 발송 (알림 시스템 구현 후)
+// - 새로 달성하면 인앱 알림과 푸시를 보낸다
 @Service
 class MissionChecker(
     private val missionGroupRepository: MissionGroupRepository,
     private val missionRepository: MissionRepository,
     private val userMissionRepository: UserMissionRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val notificationService: NotificationService
 ) {
 
     // 러닝 기록 저장 시 호출
@@ -96,13 +98,16 @@ class MissionChecker(
         val userMission = getOrCreateUserMission(userId, mission.id)
         userMission.currentValue = user.totalDistance
 
+        val newlyAchieved = user.totalDistance >= requiredDistance &&
+            userMission.status != MissionStatus.ACHIEVED
         if (user.totalDistance >= requiredDistance) {
+            if (newlyAchieved) userMission.achievedAt = LocalDateTime.now()
             userMission.status = MissionStatus.ACHIEVED
-            userMission.achievedAt = LocalDateTime.now()
         } else {
             userMission.status = MissionStatus.IN_PROGRESS
         }
         userMissionRepository.save(userMission)
+        if (newlyAchieved) notificationService.sendMissionAchievedNotification(userId, mission.name)
     }
 
     // 페이스 체크 (낮을수록 빠름, conditionValue 이하면 달성)
@@ -138,6 +143,7 @@ class MissionChecker(
         userMission.achievedAt = LocalDateTime.now()
         mission.conditionValue?.let { userMission.currentValue = it }
         userMissionRepository.save(userMission)
+        notificationService.sendMissionAchievedNotification(userId, mission.name)
     }
 
     private fun getOrCreateUserMission(userId: Long, missionId: Long): UserMission {

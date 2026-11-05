@@ -49,6 +49,9 @@ dependencies {
     implementation(platform("com.google.cloud:libraries-bom:26.55.0"))
     implementation("com.google.cloud:google-cloud-storage")
 
+    // Firebase Admin SDK (FCM 푸시)
+    implementation("com.google.firebase:firebase-admin:9.4.3")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
 

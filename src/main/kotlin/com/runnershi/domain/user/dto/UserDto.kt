@@ -29,6 +29,15 @@ data class ProfileImageConfirmRequest(
     val objectKey: String
 )
 
+data class FcmTokenUpdateRequest(
+    @field:NotBlank(message = "FCM 토큰은 필수입니다")
+    val fcmToken: String
+)
+
+data class NotificationSettingsUpdateRequest(
+    val notificationEnabled: Boolean
+)
+
 data class MyProfileResponse(
     val nickname: String,
     val profileImageUrl: String?,

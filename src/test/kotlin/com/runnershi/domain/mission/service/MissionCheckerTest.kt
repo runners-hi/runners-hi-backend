@@ -1,5 +1,6 @@
 package com.runnershi.domain.mission.service
 
+import com.runnershi.domain.notification.service.NotificationService
 import com.runnershi.domain.mission.entity.ConditionType
 import com.runnershi.domain.mission.entity.Mission
 import com.runnershi.domain.mission.entity.MissionGroup
@@ -40,12 +41,19 @@ class MissionCheckerTest {
     @Mock lateinit var missionRepository: MissionRepository
     @Mock lateinit var userMissionRepository: UserMissionRepository
     @Mock lateinit var userRepository: UserRepository
+    @Mock lateinit var notificationService: NotificationService
 
     private lateinit var missionChecker: MissionChecker
 
     @BeforeEach
     fun setUp() {
-        missionChecker = MissionChecker(missionGroupRepository, missionRepository, userMissionRepository, userRepository)
+        missionChecker = MissionChecker(
+            missionGroupRepository,
+            missionRepository,
+            userMissionRepository,
+            userRepository,
+            notificationService
+        )
     }
 
     private fun createMissionGroup(id: Long, type: MissionGroupType): MissionGroup {

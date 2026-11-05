@@ -2,7 +2,9 @@ package com.runnershi.domain.user.controller
 
 import com.runnershi.common.response.ApiResponse
 import com.runnershi.domain.region.dto.RegionUpdateRequest
+import com.runnershi.domain.user.dto.FcmTokenUpdateRequest
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.NotificationSettingsUpdateRequest
 import com.runnershi.domain.user.dto.NicknameCheckResponse
 import com.runnershi.domain.user.dto.NicknameUpdateRequest
 import com.runnershi.domain.user.dto.ProfileImageConfirmRequest
@@ -23,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 // TODO: 마이페이지 편집 API (화면 확정 후 구현)
-//       - PATCH /api/users/notification - 알림 설정 변경
 @Tag(name = "User", description = "유저 API")
 @RestController
 @RequestMapping("/api/users")
@@ -96,6 +97,26 @@ class UserController(
         @AuthenticationPrincipal userId: Long
     ): ApiResponse<Unit> {
         userService.removeProfileImage(userId)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "FCM 토큰 등록", description = "앱 실행 시 FCM 토큰을 저장합니다")
+    @PatchMapping("/fcm-token")
+    fun updateFcmToken(
+        @AuthenticationPrincipal userId: Long,
+        @Valid @RequestBody request: FcmTokenUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateFcmToken(userId, request.fcmToken)
+        return ApiResponse.success(Unit)
+    }
+
+    @Operation(summary = "푸시 알림 설정 변경")
+    @PatchMapping("/notification-settings")
+    fun updateNotificationSettings(
+        @AuthenticationPrincipal userId: Long,
+        @RequestBody request: NotificationSettingsUpdateRequest
+    ): ApiResponse<Unit> {
+        userService.updateNotificationEnabled(userId, request.notificationEnabled)
         return ApiResponse.success(Unit)
     }
 

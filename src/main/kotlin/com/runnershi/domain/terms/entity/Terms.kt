@@ -38,7 +38,9 @@ enum class TermsCode {
     PRIVACY_POLICY,        // 개인정보 수집 및 이용
     MARKETING,             // 마케팅 정보 수신
     SNS,                   // SNS 수신
-    AGE_VERIFICATION       // 만 14세 이상
+    AGE_VERIFICATION,      // 만 14세 이상
+    HEALTH_DATA,           // 건강 데이터 연동
+    LOCATION               // 위치 정보 이용
 }
 
 enum class ContentType {
