@@ -32,6 +32,7 @@ const ENV_NAMES = [
 
 export class BackendContainer extends DurableObject {
   starting;
+  ready = false;
 
   constructor(ctx, env) {
     super(ctx, env);
@@ -43,15 +44,18 @@ export class BackendContainer extends DurableObject {
   }
 
   async fetch(request) {
-    // 동시에 들어온 요청은 시작과 준비 확인을 함께 기다린다
-    this.starting ??= this.startAndWait().finally(() => {
-      this.starting = undefined;
-    });
-    try {
-      await this.starting;
-    } catch (error) {
-      console.error("container start failed", error);
-      return Response.json({ message: "server starting" }, { status: 503 });
+    // 준비된 뒤에는 요청마다 상태를 확인하지 않는다 (health가 DB까지 확인해 느리다)
+    if (!this.ready || !this.ctx.container.running) {
+      // 동시에 들어온 요청은 시작과 준비 확인을 함께 기다린다
+      this.starting ??= this.startAndWait().finally(() => {
+        this.starting = undefined;
+      });
+      try {
+        await this.starting;
+      } catch (error) {
+        console.error("container start failed", error);
+        return Response.json({ message: "server starting" }, { status: 503 });
+      }
     }
 
     const url = new URL(request.url);
@@ -59,22 +63,47 @@ export class BackendContainer extends DurableObject {
     url.host = "container";
     const forwarded = new Request(url, request);
     forwarded.headers.delete("host");
-    return this.ctx.container.getTcpPort(PORT).fetch(forwarded);
+    try {
+      return await this.ctx.container.getTcpPort(PORT).fetch(forwarded);
+    } catch (error) {
+      // 컨테이너가 재시작 중이면 다음 요청에서 다시 준비를 확인한다
+      this.ready = false;
+      throw error;
+    }
+  }
+
+  async containerEnv() {
+    const env = {};
+    for (const name of ENV_NAMES) {
+      if (this.env[name]) env[name] = this.env[name];
+    }
+    return env;
+  }
+
+  // 이미지나 환경값이 바뀌면 다른 값이 나온다. 비밀값 원문은 저장하지 않는다.
+  async revisionOf(env) {
+    const text = JSON.stringify([this.ctx.container.images.base, env]);
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return btoa(String.fromCharCode(...new Uint8Array(digest)));
   }
 
   async startAndWait() {
     const container = this.ctx.container;
+    const env = await this.containerEnv();
+    const revision = await this.revisionOf(env);
+
+    // 실행 중인 컨테이너는 배포해도 옛 이미지로 남으므로 직접 교체한다
+    if (container.running && (await this.ctx.storage.get("revision")) !== revision) {
+      await container.destroy();
+    }
     if (!container.running) {
-      const env = {};
-      for (const name of ENV_NAMES) {
-        if (this.env[name]) env[name] = this.env[name];
-      }
       container.start({
         image: container.images.base,
         instance: "standard-1",
         enableInternet: true,
         env,
       });
+      await this.ctx.storage.put("revision", revision);
     }
     await container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS);
 
@@ -87,7 +116,10 @@ export class BackendContainer extends DurableObject {
           signal: AbortSignal.timeout(5000),
         });
         await response.body?.cancel();
-        if (response.ok) return;
+        if (response.ok) {
+          this.ready = true;
+          return;
+        }
         lastError = new Error(`health ${response.status}`);
       } catch (error) {
         lastError = error;
