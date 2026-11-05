@@ -1,0 +1,17 @@
+name: Server health
+
+# 서버가 1대라 멈추면 GitHub 실패 메일로 알 수 있게 한다
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check API
+        run: curl -fsS --retry 5 --retry-delay 60 --retry-all-errors --max-time 20 -o /dev/null https://runnershi-api.oguriworks.com/api/terms
