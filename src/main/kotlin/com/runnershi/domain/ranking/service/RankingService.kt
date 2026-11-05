@@ -1,5 +1,6 @@
 package com.runnershi.domain.ranking.service
 
+import com.runnershi.common.storage.ProfileImageUrlResolver
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.level.service.LevelService
@@ -15,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class RankingService(
     private val userRepository: UserRepository,
-    private val levelService: LevelService
+    private val levelService: LevelService,
+    private val profileImageUrlResolver: ProfileImageUrlResolver
 ) {
 
     @Transactional(readOnly = true)
@@ -55,7 +57,7 @@ class RankingService(
                 rank = rankMap[u.totalDistance]!!,
                 userId = u.id,
                 nickname = u.nickname,
-                profileImageUrl = u.profileImageUrl,
+                profileImageUrl = profileImageUrlResolver.resolve(u.profileImageUrl),
                 tier = u.tier,
                 totalDistance = u.totalDistance
             )
@@ -80,7 +82,7 @@ class RankingService(
         return MyRankingResponse(
             rank = rank,
             nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
+            profileImageUrl = profileImageUrlResolver.resolve(user.profileImageUrl),
             tier = user.tier,
             totalDistance = user.totalDistance,
             level = user.level,

@@ -1,5 +1,7 @@
 package com.runnershi.domain.ranking.service
 
+import com.runnershi.common.storage.GcsProperties
+import com.runnershi.common.storage.ProfileImageUrlResolver
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
 import com.runnershi.domain.level.service.LevelService
@@ -39,7 +41,11 @@ class RankingServiceTest {
 
     @BeforeEach
     fun setUp() {
-        rankingService = RankingService(userRepository, levelService)
+        rankingService = RankingService(
+            userRepository,
+            levelService,
+            ProfileImageUrlResolver(GcsProperties("test-bucket", "test-project"))
+        )
     }
 
     private fun createUser(

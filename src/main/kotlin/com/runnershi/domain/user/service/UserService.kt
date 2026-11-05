@@ -3,6 +3,9 @@ package com.runnershi.domain.user.service
 import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
+import com.runnershi.common.storage.PresignedUrlInfo
+import com.runnershi.common.storage.ProfileImageUrlResolver
+import com.runnershi.common.storage.StorageService
 import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.mission.repository.UserMissionRepository
@@ -13,6 +16,7 @@ import com.runnershi.domain.region.repository.RegionRepository
 import com.runnershi.domain.terms.repository.TermsAgreementRepository
 import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.dto.MyProfileResponse
+import com.runnershi.domain.user.dto.ProfileImageUploadResponse
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
 import org.slf4j.LoggerFactory
@@ -29,10 +33,13 @@ class UserService(
     private val termsAgreementRepository: TermsAgreementRepository,
     private val userMissionRepository: UserMissionRepository,
     private val userLevelSnapshotRepository: UserLevelSnapshotRepository,
-    private val appleTokenClient: AppleTokenClient
+    private val appleTokenClient: AppleTokenClient,
+    private val storageService: StorageService,
+    private val profileImageUrlResolver: ProfileImageUrlResolver
 ) {
     companion object {
         private val log = LoggerFactory.getLogger(UserService::class.java)
+        private val ALLOWED_IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")
     }
 
     @Transactional
@@ -68,7 +75,7 @@ class UserService(
                 .orElse(null)
         }
 
-        return MyProfileResponse.from(user, region, district)
+        return MyProfileResponse.from(user, region, district, profileImageUrlResolver.resolve(user.profileImageUrl))
     }
 
     @Transactional
@@ -93,12 +100,61 @@ class UserService(
         missionChecker.checkOnRegionSet(userId)
     }
 
+    fun generateProfileImageUploadUrl(userId: Long, contentType: String): ProfileImageUploadResponse {
+        if (contentType !in ALLOWED_IMAGE_TYPES) {
+            throw BusinessException(ErrorCode.INVALID_IMAGE_TYPE)
+        }
+
+        val presignedUrlInfo = storageService.generatePresignedUploadUrl(userId, contentType)
+        return ProfileImageUploadResponse(
+            presignedUrl = presignedUrlInfo.url,
+            objectKey = presignedUrlInfo.objectKey
+        )
+    }
+
+    @Transactional
+    fun confirmProfileImage(userId: Long, objectKey: String) {
+        if (!objectKey.startsWith("profiles/$userId/")) {
+            throw BusinessException(ErrorCode.INVALID_OBJECT_KEY)
+        }
+
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        // 이전 이미지가 있으면 GCS에서 삭제 (실패해도 새 이미지 확정 진행)
+        user.profileImageUrl?.let {
+            try { storageService.deleteObject(it) } catch (e: Exception) {
+                log.warn("이전 프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
+            }
+        }
+
+        user.profileImageUrl = objectKey
+    }
+
+    @Transactional
+    fun removeProfileImage(userId: Long) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+
+        user.profileImageUrl?.let {
+            try { storageService.deleteObject(it) } catch (e: Exception) {
+                log.warn("프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
+            }
+        }
+        user.profileImageUrl = null
+    }
+
     @Transactional
     fun withdraw(userId: Long) {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
         revokeAppleAccountIfPossible(user.provider, user.appleRefreshToken)
+        user.profileImageUrl?.let {
+            try { storageService.deleteObject(it) } catch (e: Exception) {
+                log.warn("탈퇴 회원 프로필 이미지 삭제 실패: objectKey={}, error={}", it, e.message)
+            }
+        }
 
         termsAgreementRepository.deleteAllByUserId(userId)
         userMissionRepository.deleteAllByUserId(userId)

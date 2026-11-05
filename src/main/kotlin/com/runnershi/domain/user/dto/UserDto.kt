@@ -14,6 +14,21 @@ data class NicknameCheckResponse(
     val available: Boolean
 )
 
+data class ProfileImageUploadRequest(
+    @field:NotBlank(message = "콘텐츠 타입은 필수입니다")
+    val contentType: String
+)
+
+data class ProfileImageUploadResponse(
+    val presignedUrl: String,
+    val objectKey: String
+)
+
+data class ProfileImageConfirmRequest(
+    @field:NotBlank(message = "오브젝트 키는 필수입니다")
+    val objectKey: String
+)
+
 data class MyProfileResponse(
     val nickname: String,
     val profileImageUrl: String?,
@@ -22,9 +37,14 @@ data class MyProfileResponse(
     val notificationEnabled: Boolean
 ) {
     companion object {
-        fun from(user: User, region: RegionResponse?, district: DistrictResponse?) = MyProfileResponse(
+        fun from(
+            user: User,
+            region: RegionResponse?,
+            district: DistrictResponse?,
+            profileImageUrl: String? = user.profileImageUrl
+        ) = MyProfileResponse(
             nickname = user.nickname,
-            profileImageUrl = user.profileImageUrl,
+            profileImageUrl = profileImageUrl,
             region = region,
             district = district,
             notificationEnabled = user.notificationEnabled
