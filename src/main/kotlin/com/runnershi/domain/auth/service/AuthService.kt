@@ -13,8 +13,10 @@ import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.security.MessageDigest
 import java.time.LocalDateTime
 
 @Service
@@ -23,7 +25,8 @@ class AuthService(
     private val jwtTokenProvider: JwtTokenProvider,
     private val authClients: List<AuthClient>,
     private val appleTokenClient: AppleTokenClient,
-    private val nicknameGenerator: NicknameGenerator
+    private val nicknameGenerator: NicknameGenerator,
+    @Value("\${review.login-code:}") private val reviewLoginCode: String = ""
 ) {
 
     @Transactional
@@ -31,6 +34,16 @@ class AuthService(
         val client = getClient(Provider.KAKAO)
         val userInfo = client.verify(accessToken)
         return processLogin(Provider.KAKAO, userInfo, appleRefreshToken = null)
+    }
+
+    /** 스토어 심사 전용. 코드가 설정되지 않은 서버에서는 항상 실패한다. */
+    @Transactional
+    fun loginForReview(code: String): AuthResponse {
+        val matches = reviewLoginCode.isNotBlank() &&
+            MessageDigest.isEqual(reviewLoginCode.toByteArray(), code.toByteArray())
+        if (!matches) throw BusinessException(ErrorCode.INVALID_TOKEN, "심사 코드가 올바르지 않습니다")
+        val reviewer = UserInfo(providerId = REVIEW_PROVIDER_ID, email = null, nickname = null)
+        return processLogin(Provider.KAKAO, reviewer, appleRefreshToken = null)
     }
 
     @Transactional
@@ -159,5 +172,10 @@ class AuthService(
         user.refreshTokenExpiresAt = null
         // 로그아웃한 기기로 푸시가 가지 않게 한다.
         user.fcmToken = null
+    }
+
+    private companion object {
+        // 카카오 회원번호는 숫자뿐이라 겹치지 않는다
+        const val REVIEW_PROVIDER_ID = "store-review"
     }
 }

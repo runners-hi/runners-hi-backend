@@ -142,6 +142,41 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("심사 로그인 - 코드가 맞으면 심사 계정으로 로그인")
+        fun reviewLogin_success() {
+            val service = reviewService("review-code")
+            val reviewer = createUser(provider = Provider.KAKAO, providerId = "store-review")
+            whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "store-review")).thenReturn(reviewer)
+            stubTokenCreation(reviewer.id)
+
+            val response = service.loginForReview("review-code")
+
+            assertEquals("access-token", response.accessToken)
+            assertFalse(response.isNewUser)
+        }
+
+        @Test
+        @DisplayName("심사 로그인 - 코드가 틀리면 실패")
+        fun reviewLogin_wrongCode() {
+            assertThrows<BusinessException> { reviewService("review-code").loginForReview("wrong") }
+        }
+
+        @Test
+        @DisplayName("심사 로그인 - 서버에 코드가 없으면 빈 값도 실패")
+        fun reviewLogin_disabled() {
+            assertThrows<BusinessException> { reviewService("").loginForReview("") }
+        }
+
+        private fun reviewService(code: String) = AuthService(
+            userRepository,
+            jwtTokenProvider,
+            listOf(kakaoClient, googleClient, appleClient),
+            appleTokenClient,
+            nicknameGenerator,
+            code
+        )
+
+        @Test
         @DisplayName("구글 로그인 - 성공")
         fun googleLogin_success() {
             val userInfo = UserInfo("google-123", "test@gmail.com", "구글유저")

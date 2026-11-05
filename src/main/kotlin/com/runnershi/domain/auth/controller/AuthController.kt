@@ -6,6 +6,7 @@ import com.runnershi.domain.auth.dto.AppleLoginRequest
 import com.runnershi.domain.auth.dto.GoogleLoginRequest
 import com.runnershi.domain.auth.dto.KakaoLoginRequest
 import com.runnershi.domain.auth.dto.RefreshTokenRequest
+import com.runnershi.domain.auth.dto.ReviewLoginRequest
 import com.runnershi.domain.auth.dto.TokenResponse
 import com.runnershi.domain.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
@@ -58,6 +59,14 @@ class AuthController(
     ): ApiResponse<AuthResponse> {
         val response = authService.loginWithAppleWeb(request.idToken, request.authorizationCode)
         return ApiResponse.success(response)
+    }
+
+    @Operation(summary = "심사 계정 로그인", description = "스토어 심사자가 소셜 계정 없이 앱을 확인할 때 쓴다. 서버에 코드가 없으면 항상 실패한다")
+    @PostMapping("/review")
+    fun loginForReview(
+        @Valid @RequestBody request: ReviewLoginRequest
+    ): ApiResponse<AuthResponse> {
+        return ApiResponse.success(authService.loginForReview(request.code))
     }
 
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 새로운 Access Token 발급")

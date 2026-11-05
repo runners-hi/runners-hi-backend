@@ -20,6 +20,10 @@ jwt:
   access-token-validity: 3600000       # 1 hour
   refresh-token-validity: 1209600000   # 14 days
 
+review:
+  # 스토어 심사 계정 코드. 비어 있으면 심사 로그인이 꺼진다
+  login-code: ${REVIEW_LOGIN_CODE:}
+
 oauth:
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
