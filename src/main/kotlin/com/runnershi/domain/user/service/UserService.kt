@@ -6,9 +6,11 @@ import com.runnershi.common.exception.ErrorCode
 import com.runnershi.common.storage.PresignedUrlInfo
 import com.runnershi.common.storage.ProfileImageUrlResolver
 import com.runnershi.common.storage.StorageService
+import com.runnershi.domain.feedback.repository.FeedbackRepository
 import com.runnershi.domain.level.repository.UserLevelSnapshotRepository
 import com.runnershi.domain.mission.service.MissionChecker
 import com.runnershi.domain.mission.repository.UserMissionRepository
+import com.runnershi.domain.notification.repository.NotificationRepository
 import com.runnershi.domain.region.dto.DistrictResponse
 import com.runnershi.domain.region.dto.RegionResponse
 import com.runnershi.domain.region.repository.DistrictRepository
@@ -35,7 +37,9 @@ class UserService(
     private val userLevelSnapshotRepository: UserLevelSnapshotRepository,
     private val appleTokenClient: AppleTokenClient,
     private val storageService: StorageService,
-    private val profileImageUrlResolver: ProfileImageUrlResolver
+    private val profileImageUrlResolver: ProfileImageUrlResolver,
+    private val notificationRepository: NotificationRepository,
+    private val feedbackRepository: FeedbackRepository
 ) {
     companion object {
         private val log = LoggerFactory.getLogger(UserService::class.java)
@@ -145,6 +149,20 @@ class UserService(
     }
 
     @Transactional
+    fun updateFcmToken(userId: Long, fcmToken: String) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        user.fcmToken = fcmToken
+    }
+
+    @Transactional
+    fun updateNotificationEnabled(userId: Long, enabled: Boolean) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        user.notificationEnabled = enabled
+    }
+
+    @Transactional
     fun withdraw(userId: Long) {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
@@ -159,6 +177,8 @@ class UserService(
         termsAgreementRepository.deleteAllByUserId(userId)
         userMissionRepository.deleteAllByUserId(userId)
         userLevelSnapshotRepository.deleteAllByUserId(userId)
+        notificationRepository.deleteAllByUserId(userId)
+        feedbackRepository.deleteAllByUserId(userId)
 
         user.providerId = "withdrawn_${user.id}"
         user.email = null

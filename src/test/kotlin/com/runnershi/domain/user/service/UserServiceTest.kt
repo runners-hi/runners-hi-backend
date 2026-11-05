@@ -1,5 +1,7 @@
 package com.runnershi.domain.user.service
 
+import com.runnershi.domain.feedback.repository.FeedbackRepository
+import com.runnershi.domain.notification.repository.NotificationRepository
 import com.runnershi.auth.client.AppleTokenClient
 import com.runnershi.common.exception.BusinessException
 import com.runnershi.common.exception.ErrorCode
@@ -74,6 +76,12 @@ class UserServiceTest {
     @Mock
     lateinit var appleTokenClient: AppleTokenClient
 
+    @Mock
+    lateinit var notificationRepository: NotificationRepository
+
+    @Mock
+    lateinit var feedbackRepository: FeedbackRepository
+
     private lateinit var userService: UserService
 
     @BeforeEach
@@ -88,7 +96,9 @@ class UserServiceTest {
             userLevelSnapshotRepository,
             appleTokenClient,
             storageService,
-            ProfileImageUrlResolver(GcsProperties("test-bucket", "test-project"))
+            ProfileImageUrlResolver(GcsProperties("test-bucket", "test-project")),
+            notificationRepository,
+            feedbackRepository
         )
     }
 

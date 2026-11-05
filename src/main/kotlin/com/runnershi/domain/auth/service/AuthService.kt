@@ -158,5 +158,7 @@ class AuthService(
 
         user.refreshToken = null
         user.refreshTokenExpiresAt = null
+        // 로그아웃한 기기로 푸시가 가지 않게 한다.
+        user.fcmToken = null
     }
 }
