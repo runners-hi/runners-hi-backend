@@ -3,7 +3,9 @@ package com.runnershi.common.storage
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.MetadataDirective
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
@@ -45,8 +47,6 @@ class StorageService(
                     .bucket(properties.bucketName)
                     .key(objectKey)
                     .contentType(contentType)
-                    // 탈퇴로 지운 사진이 CDN에 오래 남지 않게 5분만 캐시한다. 앱도 같은 값을 보내야 서명이 맞는다
-                    .cacheControl(PROFILE_IMAGE_CACHE_CONTROL)
                     .build()
             )
             .build()
@@ -54,6 +54,26 @@ class StorageService(
         return PresignedUrlInfo(
             url = presigner.presignPutObject(request).url().toString(),
             objectKey = objectKey
+        )
+    }
+
+    /**
+     * 탈퇴로 지운 사진이 CDN에 오래 남지 않게 5분만 캐시한다.
+     * 업로드 서명에 넣으면 앱도 같은 헤더를 보내야 하므로, 올라온 뒤 서버가 같은 키에 덮어써서 붙인다.
+     */
+    fun applyProfileImageCachePolicy(objectKey: String) {
+        val ext = objectKey.substringAfterLast('.')
+        val contentType = CONTENT_TYPE_TO_EXT.entries.first { it.value == ext }.key
+        s3Client.copyObject(
+            CopyObjectRequest.builder()
+                .sourceBucket(properties.bucketName)
+                .sourceKey(objectKey)
+                .destinationBucket(properties.bucketName)
+                .destinationKey(objectKey)
+                .metadataDirective(MetadataDirective.REPLACE)
+                .contentType(contentType)
+                .cacheControl(PROFILE_IMAGE_CACHE_CONTROL)
+                .build()
         )
     }
 

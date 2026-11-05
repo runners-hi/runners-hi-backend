@@ -127,6 +127,11 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
+        // 캐시 설정 실패는 사진 표시를 막지 않으므로 확정을 계속한다
+        try { storageService.applyProfileImageCachePolicy(objectKey) } catch (e: Exception) {
+            log.warn("프로필 이미지 캐시 설정 실패: objectKey={}, error={}", objectKey, e.message)
+        }
+
         // 이전 이미지가 있으면 저장소에서 삭제 (실패해도 새 이미지 확정 진행)
         user.profileImageUrl?.let {
             try { storageService.deleteObject(it) } catch (e: Exception) {
