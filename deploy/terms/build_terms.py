@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """약관 정본(src/main/resources/terms/*.txt)에서 DB 마이그레이션과 공개 HTML 페이지를 만든다.
 
-사용: python3 deploy/terms/build_terms.py <마이그레이션 번호> <버전>
+사용: python3 deploy/terms/build_terms.py <마이그레이션 번호> <버전> [코드,코드...]  (코드를 주면 그 약관만 버전을 올린다)
   - src/main/resources/db/migration/V<번호>__update_terms_content.sql  (terms.content, terms.version 갱신)
   - deploy/oracle/pages/terms.html, privacy.html
 약관 본문을 고칠 때는 txt를 고치고 번호와 버전을 올려 다시 실행한다.
@@ -66,9 +66,10 @@ def page(title, body):
 
 def main():
     num, version = sys.argv[1], int(sys.argv[2])
+    only = sys.argv[3].split(",") if len(sys.argv) > 3 else ORDER
     sql = ["-- deploy/terms/build_terms.py 가 만든 파일이다. 본문은 src/main/resources/terms/*.txt 를 고쳐 다시 만든다.",
            "ALTER TABLE terms ADD COLUMN IF NOT EXISTS content TEXT;"]
-    for code in ORDER:
+    for code in only:
         text = read(code)
         assert "$terms$" not in text
         sql.append(f"UPDATE terms SET content = $terms${text}$terms$, version = {version}, updated_at = CURRENT_TIMESTAMP WHERE code = '{code}';")
