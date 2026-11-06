@@ -36,3 +36,11 @@ runnershi-dev-api.oguriworks.com {
 		reverse_proxy localhost:8081
 	}
 }
+
+# mockwire 호스팅 프록시 (목 응답·에러·끊김 주입). 배포 때 지워지지 않게 여기 둔다
+runnershi-mock.oguriworks.com {
+	encode gzip
+	handle {
+		reverse_proxy localhost:8899
+	}
+}
