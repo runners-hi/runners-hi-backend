@@ -110,7 +110,7 @@ class RunningRecordControllerTest : ControllerTest() {
                         "endedAt" to "2025-01-06T07:30:00"
                     )))
             )
-                .andExpect(status().isForbidden)
+                .andExpect(status().isUnauthorized)
         }
     }
 

@@ -1,0 +1,19 @@
+[Unit]
+Description=RunnersHi backend (dev, 별도 스키마 dev)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/srv/runnershi-dev
+EnvironmentFile=/srv/runnershi-dev/env
+# 같은 jar를 쓴다. 상용보다 힙을 작게 잡는다(서버 메모리 1GB를 둘이 나눠 쓴다)
+ExecStart=/usr/bin/java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xmx180m -Xss512k -XX:MaxMetaspaceSize=120m -XX:+ExitOnOutOfMemoryError -jar /srv/runnershi/app.jar
+Restart=always
+RestartSec=5
+SuccessExitStatus=143
+# 메모리가 모자라면 상용이 아니라 개발 서버부터 죽게 한다
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target

@@ -41,5 +41,5 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/id_deploy
           printf '%s\n' "$ORACLE_HOST_KEY" > ~/.ssh/known_hosts
           ssh -i ~/.ssh/id_deploy "ubuntu@$ORACLE_HOST" 'rm -rf ~/release && mkdir ~/release'
-          scp -i ~/.ssh/id_deploy -r app.jar pages Caddyfile runnershi.service deploy.sh "ubuntu@$ORACLE_HOST:release/"
+          scp -i ~/.ssh/id_deploy -r app.jar pages Caddyfile runnershi.service runnershi-dev.service deploy.sh "ubuntu@$ORACLE_HOST:release/"
           ssh -i ~/.ssh/id_deploy "ubuntu@$ORACLE_HOST" 'bash ~/release/deploy.sh'

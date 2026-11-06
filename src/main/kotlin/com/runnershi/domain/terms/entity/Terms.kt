@@ -23,6 +23,10 @@ class Terms(
 
     val contentUrl: String? = null,
 
+    // 앱에 그대로 보여 주는 약관 본문(plain text, 줄바꿈 \n)
+    @Column(columnDefinition = "TEXT")
+    val content: String? = null,
+
     @Column(nullable = false)
     val required: Boolean,
 

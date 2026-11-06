@@ -11,6 +11,11 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.runnershi.common.exception.ErrorCode
+import com.runnershi.common.response.ApiResponse
+import jakarta.servlet.http.HttpServletResponse
 
 @Configuration
 @EnableWebSecurity
@@ -39,10 +44,23 @@ class SecurityConfig(
                         "/v3/api-docs/**",
                         "/actuator/health"
                     ).permitAll()
-                    .anyRequest().authenticated()
+                    // 인증은 API 경로에만 건다. 없는 주소는 JSON 404로 돌려준다
+                    .requestMatchers("/api/**").authenticated()
+                    .anyRequest().permitAll()
+            }
+            .exceptionHandling {
+                it.authenticationEntryPoint { _, response, _ -> writeError(response, ErrorCode.UNAUTHORIZED) }
+                it.accessDeniedHandler { _, response, _ -> writeError(response, ErrorCode.ACCESS_DENIED) }
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
+    }
+
+    private fun writeError(response: HttpServletResponse, errorCode: ErrorCode) {
+        response.status = errorCode.status.value()
+        response.contentType = MediaType.APPLICATION_JSON_VALUE
+        response.characterEncoding = "UTF-8"
+        response.writer.write(ObjectMapper().writeValueAsString(ApiResponse.error(errorCode.code, errorCode.message)))
     }
 
     @Bean

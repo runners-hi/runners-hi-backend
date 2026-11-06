@@ -102,9 +102,9 @@ class NotificationControllerTest : ControllerTest() {
     }
 
     @Test
-    @DisplayName("인증 없이 GET /api/notifications - 403 반환")
+    @DisplayName("인증 없이 GET /api/notifications - 401 반환")
     fun withoutAuth_returnsForbidden() {
         mockMvc.perform(get("/api/notifications"))
-            .andExpect(status().isForbidden)
+            .andExpect(status().isUnauthorized)
     }
 }

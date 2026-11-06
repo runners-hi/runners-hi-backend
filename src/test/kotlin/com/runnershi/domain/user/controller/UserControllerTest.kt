@@ -294,6 +294,6 @@ class UserControllerTest : ControllerTest() {
     @DisplayName("인증 없이 API 호출 시 에러 반환")
     fun withoutAuth_returnsError() {
         mockMvc.perform(get("/api/users/me"))
-            .andExpect(status().isForbidden)
+            .andExpect(status().isUnauthorized)
     }
 }

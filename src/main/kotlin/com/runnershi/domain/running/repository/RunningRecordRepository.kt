@@ -11,6 +11,8 @@ interface RunningRecordRepository : JpaRepository<RunningRecord, Long> {
 
     fun deleteAllByUserId(userId: Long)
 
+    fun existsByUserId(userId: Long): Boolean
+
     @Query("""
         SELECT r FROM RunningRecord r
         WHERE r.userId = :userId

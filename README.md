@@ -107,3 +107,35 @@ SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
 | Database | runners_hi |
 | Username | postgres |
 | Password | password |
+
+## 개발(dev) 서버
+
+- 주소: `https://runnershi-dev-api.oguriworks.com` (상용과 같은 VM, 포트 8081, systemd `runnershi-dev`)
+- DB: 상용과 같은 Supabase, 스키마만 `dev`로 분리. 상용 데이터는 건드리지 않는다.
+- 프로필 `dev`에서만 `db/dev-seed/R__dev_seed.sql`(회원 20명, 60일 러닝 기록, 랭킹, 미션, 공지, 알림)이 들어간다. 상용에는 없다.
+- 심사용 로그인(`REVIEW_LOGIN_CODE`)은 dev에서도 동작한다.
+- 새 계정으로 로그인했는데 러닝 기록이 없으면 `DevDataSeeder`가 최근 두 달치 기록과 알림을 채운다.
+
+### 테스트 로그인 (dev 전용, Maestro용)
+
+```
+POST /api/auth/dev
+{"userKey": "e2e-1", "onboarded": true}
+```
+
+- 응답은 일반 로그인과 같다: `data.accessToken`, `data.refreshToken`, `data.isNewUser`.
+- `userKey`가 같으면 같은 회원이다. `seed01`~`seed20`은 시드 회원(서울 강남구 8명 포함)이다.
+- `onboarded=true`(기본): 약관 동의, 서울 강남구가 설정된 ACTIVE 회원. 기록이 없으면 샘플 기록을 채운다.
+- `onboarded=false`: 가입 직후 상태(약관 동의 전, 지역 없음)로 온보딩 화면을 테스트한다.
+- 상용에서는 이 경로가 404다.
+
+### 약관 본문 고치는 법
+
+- 원문은 `src/main/resources/terms/*.txt`이다.
+- `python3 deploy/terms/build_terms.py <마이그레이션 번호> <version>`을 돌리면 Flyway SQL과 `deploy/oracle/pages/terms.html`, `privacy.html`이 다시 만들어진다.
+- `GET /api/terms`의 각 항목에 `content`(plain text)와 `version`이 들어간다.
+
+### 오류 응답
+
+- 모든 오류는 `{"success":false,"data":null,"error":{"code":"...","message":"한국어 메시지"}}` 형태다.
+- 400 요청 오류, 401 인증 필요, 403 권한 없음, 404 없는 주소·자원, 409 충돌, 415 지원하지 않는 형식, 500 서버 오류.

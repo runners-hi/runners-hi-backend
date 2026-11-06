@@ -193,7 +193,7 @@ class AuthControllerTest : ControllerTest() {
         @DisplayName("인증 토큰 없이 로그아웃 시도 시 에러 반환")
         fun withoutToken_returnsError() {
             mockMvc.perform(post("/api/auth/logout"))
-                .andExpect(status().isForbidden)
+                .andExpect(status().isUnauthorized)
         }
     }
 }
