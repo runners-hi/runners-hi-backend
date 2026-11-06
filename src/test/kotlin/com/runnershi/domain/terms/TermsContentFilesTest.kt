@@ -25,7 +25,7 @@ class TermsContentFilesTest {
     @DisplayName("개인정보 처리방침에 필수 항목이 들어 있다")
     fun privacyHasRequiredItems() {
         val t = text(TermsCode.PRIVACY_POLICY)
-        listOf("3개월", "카카오", "구글", "애플", "랭킹", "Health Connect", "HealthKit", "탈퇴", "2026년 11월").forEach {
+        listOf("3개월", "카카오", "구글", "애플", "랭킹", "Health Connect", "HealthKit", "탈퇴", "2026년 11월", "Google Analytics for Firebase", "14개월", "광고 식별자").forEach {
             assertTrue(t.contains(it), "개인정보 처리방침에 '$it' 없음")
         }
     }
