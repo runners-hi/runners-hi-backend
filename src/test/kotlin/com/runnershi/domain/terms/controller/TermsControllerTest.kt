@@ -110,7 +110,7 @@ class TermsControllerTest : ControllerTest() {
                         "agreements" to listOf(mapOf("termsId" to 1, "agreed" to true))
                     )))
             )
-                .andExpect(status().isForbidden)
+                .andExpect(status().isUnauthorized)
         }
     }
 }

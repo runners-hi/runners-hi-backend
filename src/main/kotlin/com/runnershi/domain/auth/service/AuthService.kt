@@ -13,6 +13,7 @@ import com.runnershi.domain.user.entity.Provider
 import com.runnershi.domain.user.entity.User
 import com.runnershi.domain.user.entity.UserStatus
 import com.runnershi.domain.user.repository.UserRepository
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,6 +29,10 @@ class AuthService(
     private val nicknameGenerator: NicknameGenerator,
     @Value("\${review.login-code:}") private val reviewLoginCode: String = ""
 ) {
+
+    // 개발(dev) 프로필에서만 있는 훅. 상용에서는 null이다
+    @Autowired(required = false)
+    private var loginHook: LoginHook? = null
 
     @Transactional
     fun loginWithKakao(accessToken: String): AuthResponse {
@@ -93,6 +98,8 @@ class AuthService(
         if (provider == Provider.APPLE && !appleRefreshToken.isNullOrBlank()) {
             user.appleRefreshToken = appleRefreshToken
         }
+
+        loginHook?.onLogin(user)
 
         return AuthResponse(
             accessToken = accessToken,

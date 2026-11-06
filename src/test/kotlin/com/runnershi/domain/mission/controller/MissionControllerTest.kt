@@ -71,7 +71,7 @@ class MissionControllerTest : ControllerTest() {
         @DisplayName("인증 없이 요청 시 에러 반환")
         fun withoutAuth() {
             mockMvc.perform(get("/api/missions"))
-                .andExpect(status().isForbidden)
+                .andExpect(status().isUnauthorized)
         }
     }
 

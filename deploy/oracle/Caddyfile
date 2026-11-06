@@ -1,5 +1,4 @@
-runnershi-api.oguriworks.com {
-	encode gzip
+(pages) {
 	handle /privacy {
 		root * /srv/runnershi/pages
 		rewrite * /privacy.html
@@ -19,7 +18,21 @@ runnershi-api.oguriworks.com {
 	handle /actuator/* {
 		respond 404
 	}
+}
+
+runnershi-api.oguriworks.com {
+	encode gzip
+	import pages
 	handle {
 		reverse_proxy localhost:8080
+	}
+}
+
+# 개발 서버: 별도 스키마(dev)와 시드 데이터를 쓴다
+runnershi-dev-api.oguriworks.com {
+	encode gzip
+	import pages
+	handle {
+		reverse_proxy localhost:8081
 	}
 }

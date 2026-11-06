@@ -1,18 +1,43 @@
+# 개발 서버(runnershi-dev, 포트 8081). 상용과 같은 Supabase DB의 별도 스키마(dev)를 쓰고 시드 데이터를 넣는다.
+# DB_URL 에는 ?currentSchema=dev 를 붙인다 (환경 파일 /srv/runnershi-dev/env).
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # 상용과 같은 DB 연결 한도(무료 60개)를 나눠 쓰므로 적게 쓴다
+      maximum-pool-size: 3
+      minimum-idle: 0
 
   jpa:
     show-sql: false
+    properties:
+      hibernate:
+        default_schema: ${DB_SCHEMA:dev}
+
+  flyway:
+    schemas: ${DB_SCHEMA:dev}
+    default-schema: ${DB_SCHEMA:dev}
+    create-schemas: true
+    # db/dev-seed 는 dev 프로필에서만 읽는다 (상용은 application.yaml 의 db/migration 만)
+    locations: classpath:db/migration,classpath:db/dev-seed
+
+jwt:
+  secret: ${JWT_SECRET}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 logging:
   level:
-    root: INFO
+    root: WARN
     com.runnershi: INFO
-    org.springframework.web: INFO
+    org.springframework.web: WARN
     org.hibernate.SQL: OFF
     org.springframework.security: WARN
     org.flywaydb: INFO

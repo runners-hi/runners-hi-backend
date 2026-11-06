@@ -12,7 +12,8 @@ data class TermsResponse(
     val contentUrl: String?,
     val required: Boolean,
     val version: Int,
-    val agreed: Boolean = false
+    val agreed: Boolean = false,
+    val content: String = ""
 ) {
     companion object {
         fun from(terms: Terms, agreed: Boolean = false) = TermsResponse(
@@ -23,7 +24,8 @@ data class TermsResponse(
             contentUrl = terms.contentUrl,
             required = terms.required,
             version = terms.version,
-            agreed = agreed
+            agreed = agreed,
+            content = terms.content ?: ""
         )
     }
 }
