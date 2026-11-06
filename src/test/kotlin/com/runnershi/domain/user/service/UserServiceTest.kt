@@ -527,6 +527,19 @@ class UserServiceTest {
         }
 
         @Test
+        @DisplayName("캐시 설정이 실패해도 사진을 확정한다")
+        fun cachePolicyFailure_stillConfirms() {
+            val user = createUser(id = 1L)
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+            whenever(storageService.applyProfileImageCachePolicy("profiles/1/new-image.jpg"))
+                .thenThrow(RuntimeException("storage error"))
+
+            userService.confirmProfileImage(1L, "profiles/1/new-image.jpg")
+
+            assertEquals("profiles/1/new-image.jpg", user.profileImageUrl)
+        }
+
+        @Test
         @DisplayName("이전 이미지 삭제 실패해도 새 이미지 확정은 진행")
         fun deleteFailure_stillConfirms() {
             val user = createUser()
